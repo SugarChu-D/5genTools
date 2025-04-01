@@ -151,7 +151,7 @@ const int VCount_W = 0x5f;
 
 //メイン関数
 int main(void){
-	char Data[2048],Key[2048];
+	char Data[2048];
 	SHA1_DATA SD1;
     char rom;int nazo;
     cout << "Choose your ROM b/w:"; cin >> rom;
@@ -167,7 +167,7 @@ int main(void){
 	cout << hex << nazo << endl;
     cout << nazo + 0xfc << endl;
     cout << nazo + 0xfc + 0x4c << endl;
-	//SHA1(&SD1,Data,0);
+	SHA1(&SD1,Data,0);
 	//cout << "SHA1 = " << SD1.Val_String << endl;
 	return 0;
 }
