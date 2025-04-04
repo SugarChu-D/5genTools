@@ -141,8 +141,8 @@ bool SHA1(SHA1_DATA *sha1d, const char *data , SHA_INT_TYPE size){
 	return true;
 }
 
-//メイン関数
-/*
+/*SHA1のテスト用メイン関数　
+
 int main(void){
 	char Data[2048];
 	SHA1_DATA SD1;
