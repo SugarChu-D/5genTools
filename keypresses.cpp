@@ -1,5 +1,7 @@
 #include <iostream>
+#include <bitset>
 #include <vector>
+#include <string>
 using namespace std;
 
 /*キー入力について
@@ -8,9 +10,46 @@ using namespace std;
 左から　下　上　左　右　Start Select　A　B　0010固定　Y　X　L　Rという順番に対応している．
 初期seedを計算するならこれを全探索してもらうのが早いだろう．
 ただし，真ん中にある0010と，上下左右反対のキーの同時押し・ソフトリセットの禁忌をうまいこと外してあげる必要があるので，その実装がめんどくさい．
+何か知らんけどforループで回すと桁の右から順番に計算してくるので，for文を逆に回すことで対策としている．
 */
 
-const vector < pair <unsigned int, string>> keypresses;
+// 各ビットに対応するキー名
+const vector<string> bitToKey = {
+    "R", "L", "X", "Y", "Unused", "Unused", "Unused", "Unused",
+    "B", "A", "Select", "Start", "Right", "Left", "Up", "Down"
+};
+
+// 16ビット数値を解析して対応するキーを取得
+vector<string> getKeysFromBits(unsigned short bits) {
+    vector<string> keys;
+    for (int i = 0; i < 4; i++) {
+        if (!(bits & (1 << i))) {
+            keys.push_back(bitToKey[i]);
+        }
+    }
+    for (int i = 8; i < 16; i++) {
+        if (!(bits & (1 << i))) {
+            keys.push_back(bitToKey[i]);
+        }
+    }
+    return keys;
+};
+
+int main() {
+    unsigned short input = 0b1011111100100111;  // 入力後の状態 (例: 0xff27)
+
+    vector<string> keys = getKeysFromBits(input);
+
+    cout << "Input bits: " << bitset<16>(input) << endl;
+    cout << "Keys: ";
+    for (const string& key : keys) {
+        cout << key << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
+
 
 /*
 keypresses = [

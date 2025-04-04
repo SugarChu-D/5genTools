@@ -105,7 +105,7 @@ bool SHA1(SHA1_DATA *sha1d, const char *data , SHA_INT_TYPE size){
 	s = (size)?size:strlen(data);
 	memcpy(h,SHA1_H_Val,sizeof(SHA1_H_Val));		
 	
-	//dataのバイト数が64バイトを超えていたら60バイト未満になるまで処理をする
+	//dataのバイト数が64バイトを超えていたら60バイト未満になるまで処理をする まず起こらないと思うんですけど
 	for(SHA_INT_TYPE i=s,j=0;i>=64;i-=64,j+=64)SHA1_HashBlock(h,(const unsigned char*)(data + j));
 	
 	//パディングに含めるデータのサイズ
