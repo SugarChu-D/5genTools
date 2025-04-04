@@ -142,6 +142,7 @@ bool SHA1(SHA1_DATA *sha1d, const char *data , SHA_INT_TYPE size){
 }
 
 //メイン関数
+/*
 int main(void){
 	char Data[2048];
 	SHA1_DATA SD1;
@@ -155,4 +156,4 @@ int main(void){
 	SHA1(&SD1,Data,0);
 	cout << "SHA1 = " << SD1.Val_String << endl;
 	return 0;
-}
+}*/
