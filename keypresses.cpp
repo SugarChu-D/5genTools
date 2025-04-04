@@ -36,7 +36,7 @@ vector<string> getKeysFromBits(unsigned short bits) {
 };
 
 int main() {
-    unsigned short input = 0b1011111100100111;  // 入力後の状態 (例: 0xff27)
+    unsigned short input = 0b1111111100100111;  // 入力後の状態 (例: 0xff27)
 
     vector<string> keys = getKeysFromBits(input);
 
