@@ -1,28 +1,23 @@
-#include <stdio.h>
-#include <string.h>
-#include <malloc.h>
-#include <iostream>
+#include "sha-1.h" // ヘッダーファイルをインクルード
+#include <cstring> // memcpy, memset, strlen
+#include <iostream> // std::cout, std::cin
+#include <cstdio>   // sprintf
+
 
 using namespace std;
 
 // 型定義
-typedef unsigned __int32 SHA_INT_TYPE;
-
-// 構造体定義
-typedef struct tagSHA1_DATA{
-	SHA_INT_TYPE Value[5];
-	char Val_String[45];
-}SHA1_DATA;
+using SHA_INT_TYPE = uint32_t; // SHA_INT_TYPEをuint32_tに定義
 
 //SHA1のメッセージダイジェスト初期値
-const SHA_INT_TYPE SHA1_H_Val[] = { 0x67452301 , 0xefcdab89 , 0x98badcfe , 0x10325476 , 0xc3d2e1f0 }; 
+constexpr SHA_INT_TYPE SHA1_H_Val[] = {0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0};
 
 //プロトタイプ宣言(基本関数)
 SHA_INT_TYPE SHA1_K(SHA_INT_TYPE);
 SHA_INT_TYPE SHA1_f(SHA_INT_TYPE,SHA_INT_TYPE,SHA_INT_TYPE,SHA_INT_TYPE);
 SHA_INT_TYPE SHA1_rotl(SHA_INT_TYPE,SHA_INT_TYPE);
 
-void SHA_Reverse_INT64(const unsigned char *,unsigned __int64);
+void SHA_Reverse_INT64(const unsigned char *,uint64_t);
 SHA_INT_TYPE SHA_Reverse(SHA_INT_TYPE);
 
 //プロトタイプ宣言(SHA)
@@ -30,7 +25,7 @@ void SHA1_HashBlock(SHA_INT_TYPE *,const unsigned char *);
 bool SHA1(SHA1_DATA *, const char* , SHA_INT_TYPE);
 
 //基本関数
-SHA_INT_TYPE SHA1_K(SHA_INT_TYPE t){
+inline SHA_INT_TYPE SHA1_K(SHA_INT_TYPE t){
 	if(t<=19)return 0x5a827999;
 	else if(t<=39)return 0x6ed9eba1;
 	else if(t<=59)return 0x8f1bbcdc;
@@ -38,7 +33,7 @@ SHA_INT_TYPE SHA1_K(SHA_INT_TYPE t){
 	return 0;
 }
 
-SHA_INT_TYPE SHA1_f(SHA_INT_TYPE t,SHA_INT_TYPE B,SHA_INT_TYPE C, SHA_INT_TYPE D){
+inline SHA_INT_TYPE SHA1_f(SHA_INT_TYPE t,SHA_INT_TYPE B,SHA_INT_TYPE C, SHA_INT_TYPE D){
 	if(t<=19)return (B&C)|(~B&D);
 	else if(t<=39)return B^C^D;
 	else if(t<=59)return (B&C)|(B&D)|(C&D);
@@ -47,21 +42,22 @@ SHA_INT_TYPE SHA1_f(SHA_INT_TYPE t,SHA_INT_TYPE B,SHA_INT_TYPE C, SHA_INT_TYPE D
 }
 
 //左ローテート関数
-SHA_INT_TYPE SHA1_rotl(SHA_INT_TYPE r,SHA_INT_TYPE x){
+inline SHA_INT_TYPE SHA1_rotl(SHA_INT_TYPE r,SHA_INT_TYPE x){
 	SHA_INT_TYPE rot = r%32;
 	return (x >> (32 - rot)) | (x << rot);
 }
-
-void SHA_Reverse_INT64(unsigned char *data,unsigned __int64 write){
-	unsigned char cdata[8];
-	memcpy(cdata,&write,sizeof(__int64));
-	for(int i=0;i<=7;i++)*(data + i) = cdata[7-i];
+//ビット反転関数
+// 64ビット値を逆順に書き込む
+inline void SHA_Reverse_INT64(unsigned char* data, uint64_t write) {
+    for (int i = 0; i < 8; ++i) {
+        data[i] = (write >> (56 - i * 8)) & 0xFF;
+    }
 }
 
-SHA_INT_TYPE SHA_Reverse(SHA_INT_TYPE d){
+inline SHA_INT_TYPE SHA_Reverse(SHA_INT_TYPE d){
 	unsigned char b_data[4],a_data[4];
 	SHA_INT_TYPE ret;
-	memcpy(b_data,&d,sizeof(__int32));
+	memcpy(b_data,&d,sizeof(uint32_t));
 	for(int i=0;i<4;i++)a_data[i] = b_data[3-i];
 	memcpy(&ret,a_data,sizeof(a_data));
 	return ret;
@@ -99,11 +95,11 @@ void SHA1_HashBlock(SHA_INT_TYPE *SHA1_H_Data , const unsigned char *data){
 bool SHA1(SHA1_DATA *sha1d, const char *data , SHA_INT_TYPE size){
 	SHA_INT_TYPE s,h[5],ns;
 	int cnt=0;
-	unsigned __int64 s64;
+	uint64_t s64;
 	unsigned char d[64];
 	if(!sha1d)return false;
-	s = (size)?size:strlen(data);
-	memcpy(h,SHA1_H_Val,sizeof(SHA1_H_Val));		
+	s = (size) ? size : char_traits<char>::length(data);
+	copy(begin(SHA1_H_Val), end(SHA1_H_Val), h);		
 	
 	//dataのバイト数が64バイトを超えていたら60バイト未満になるまで処理をする まず起こらないと思うんですけど
 	for(SHA_INT_TYPE i=s,j=0;i>=64;i-=64,j+=64)SHA1_HashBlock(h,(const unsigned char*)(data + j));
@@ -112,7 +108,7 @@ bool SHA1(SHA1_DATA *sha1d, const char *data , SHA_INT_TYPE size){
 	ns = s%64;
 	
 	//d・・・パディング文字列
-	memset(d,0,64);
+	fill(begin(d), end(d), 0x00); // dをNULL文字で初期化
 	
 	//パディングにコピー
 	memcpy(d,data + (s-ns),ns);
@@ -141,19 +137,19 @@ bool SHA1(SHA1_DATA *sha1d, const char *data , SHA_INT_TYPE size){
 	return true;
 }
 
-/*SHA1のテスト用メイン関数　
+//SHA1のテスト用メイン関数　
 
-int main(void){
-	char Data[2048];
-	SHA1_DATA SD1;
+// int main(void){
+// 	char Data[2048];
+// 	SHA1_DATA SD1;
 
-	cout << "Data(under 2048 bite) = ";
-	cin >> Data;
-	if(strlen(Data) > 2048){
-		cout << "error: please insert under 2048 bite" << endl;
-		return 0;
-	}
-	SHA1(&SD1,Data,0);
-	cout << "SHA1 = " << SD1.Val_String << endl;
-	return 0;
-}*/
+// 	cout << "Data(under 2048 bite) = ";
+// 	cin >> Data;
+// 	if(strlen(Data) > 2048){
+// 		cout << "error: please insert under 2048 bite" << endl;
+// 		return 0;
+// 	}
+// 	SHA1(&SD1,Data,0);
+// 	cout << "SHA1 = " << SD1.Val_String << endl;
+// 	return 0;
+// }
