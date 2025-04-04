@@ -30,12 +30,12 @@ int main(){
         return 0;
     }
 
-        // nazo を 16進数文字列に変換して Data に格納
-        stringstream ss;
-        ss << hex << nazo;
-        string nazoHex = ss.str();
-        strncpy(Data, nazoHex.c_str(), sizeof(Data) - 1);
-        Data[sizeof(Data) - 1] = '\0'; // 安全のため終端文字を追加
+    // nazo を 16進数文字列に変換して Data に格納
+    stringstream ss;
+    ss << hex << nazo;
+    string nazoHex = ss.str();
+    strncpy(Data, nazoHex.c_str(), sizeof(Data) - 1);
+    Data[sizeof(Data) - 1] = '\0'; // 安全のため終端文字を追加
     
 
 	cout << hex << nazo << endl;
