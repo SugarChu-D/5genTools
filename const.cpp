@@ -13,21 +13,21 @@ using namespace std;
 
 class Version {
     string Label; // バージョン名
-    string nazo; // nazo値（5つの整数をガッチャンコした文字列）
+    array<uint32_t, 5> nazoArray; // nazo値を5つの整数として保持
     int VCount; // VCountの値
 
     // ラベルに基づいて値を設定するヘルパー関数
     void initializeValues() {
-        static const map<string, pair<string, int>> versionData = {
-            {"JPB1", {"105f21020c6021020c6021025860210258602102", 0x60}}, //{0x02215f10, 0x0221600C, 0x0221600C, 0x02216058, 0x02216058}
-            {"JPW1", {"305f21022c6021022c6021027860210278602102", 0x5F}}, //{0x02215f30, 0x022602C, 0x022602C, 0x0226078, 0x0226078}
-            {"JPB2", {"dca80902c99a0302b0f91f0204fa1f0204fa1f02", 0x82}}, //{0x209A8DC, 0x2039AC9, 0x21FF9B0, 0x21FFA04, 0x21FFA04}
-            {"JPW2", {"fca80902f59a0302d0f91f0224fa1f0224fa1f02", 0x82}} //{0x209A8FC, 0x2039AF5, 0x21FF9D0, 0x21FFA24, 0x21FFA24}
+        static const map<string, pair<array<uint32_t, 5>, int>> versionData = {
+            {"JPB1", {{0x02215F10, 0x0221600C, 0x0221600C, 0x02216058, 0x02216058}, 0x60}},
+            {"JPW1", {{0x02215F30, 0x0226020C, 0x0226020C, 0x0226078, 0x0226078}, 0x5F}},
+            {"JPB2", {{0x209A8DC, 0x2039AC9, 0x21FF9B0, 0x21FFA04, 0x21FFA04}, 0x82}},
+            {"JPW2", {{0x209A8FC, 0x2039AF5, 0x21FF9D0, 0x21FFA24, 0x21FFA24}, 0x82}}
         };
 
         auto it = versionData.find(Label);
         if (it != versionData.end()) {
-            nazo = it->second.first;
+            nazoArray = it->second.first;
             VCount = it->second.second;
         } else {
             throw invalid_argument("Unknown label: " + Label);
@@ -42,12 +42,16 @@ public:
 
     // ゲッター
     string getLabel() const { return Label; }
-    string getNazo() const { return nazo; }
+    array<uint32_t, 5> getNazoArray() const { return nazoArray; }
     int getVCount() const { return VCount; }
 
     // デバッグ用の出力
     void print() const {
-        cout << "Version: " << Label << ", VCount: " << hex << VCount << ", nazo: " << nazo << endl;
+        cout << "Version: " << Label << ", VCount: " << hex << VCount << ", nazoArray: ";
+        for (const auto& val : nazoArray) {
+            cout << hex << val << " ";
+        }
+        cout << endl;
     }
 };
 
