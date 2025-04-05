@@ -1,13 +1,10 @@
 #include <iostream>
-#include <vector>
 #include <string>
 #include <stdexcept>
-#include <sstream>
 #include <map>
 #include <array>
-#include "sha-1.h"
-#include <cstring>
 #include <iomanip>
+#include <cstdint>
 
 using namespace std;
 
@@ -55,15 +52,15 @@ public:
     }
 };
 
-// int main() {
-//     char Data[2048] = {0}; // 初期化
-//     try {
-//         // ラベルに基づいてオブジェクトを作成
-//         Version v1("JPB2");
-//         v1.print();
-//     } catch (const exception& e) {
-//         cerr << "Error: " << e.what() << endl;
-//     }
+int main() {
+    char Data[2048] = {0}; // 初期化
+    try {
+        // ラベルに基づいてオブジェクトを作成
+        Version v1("JPB2");
+        v1.print();
+    } catch (const exception& e) {
+        cerr << "Error: " << e.what() << endl;
+    }
 
-//     return 0;
-// }
+    return 0;
+}
