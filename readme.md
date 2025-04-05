@@ -2,12 +2,12 @@
 
 ## 参考
   
-[C++でSHAを実装したもの 借りパク元](https://gist.github.com/hirosof/814289)
+[C++でSHAを実装したもの 借りパク元](https://gist.github.com/hirosof/814289){:target="_blank"}
 
 夜綱さんのツール  
-https://github.com/yatsuna827/5genInitialSeedSearch/tree/main  
+https://github.com/yatsuna827/5genInitialSeedSearch/tree/main{:target="_blank"}  
 
-[さびたコイルさんの乱数解説記事](https://rusted-coil.sakura.ne.jp/pokemon/ran/ran_2.htm)  
+[さびたコイルさんの乱数解説記事](https://rusted-coil.sakura.ne.jp/pokemon/ran/ran_2.htm){:target="_blank"}  
 
 [BWパラメータ集](https://blog.bzl-web.com/entry/2020/09/18/235128)  
 
