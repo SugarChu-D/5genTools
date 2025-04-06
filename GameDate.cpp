@@ -84,13 +84,13 @@ uint32_t GameDate::getTime9Format() const {
     uint8_t hexMinute = decimalToHex(minute);
     uint8_t hexSecond = decimalToHex(second);
 
-    // デバッグ出力
-    cout << "Decimal hour: " << static_cast<int>(hour) 
-         << " -> Hex: 0x" << hex << static_cast<int>(hexHour) << endl;
-    cout << "Decimal minute: " << static_cast<int>(minute) 
-         << " -> Hex: 0x" << hex << static_cast<int>(hexMinute) << endl;
-    cout << "Decimal second: " << static_cast<int>(second) 
-         << " -> Hex: 0x" << hex << static_cast<int>(hexSecond) << endl;
+    // // デバッグ出力
+    // cout << "Decimal hour: " << static_cast<int>(hour) 
+    //      << " -> Hex: 0x" << hex << static_cast<int>(hexHour) << endl;
+    // cout << "Decimal minute: " << static_cast<int>(minute) 
+    //      << " -> Hex: 0x" << hex << static_cast<int>(hexMinute) << endl;
+    // cout << "Decimal second: " << static_cast<int>(second) 
+    //      << " -> Hex: 0x" << hex << static_cast<int>(hexSecond) << endl;
 
     // 時、分、秒を結合
     return (static_cast<uint32_t>(hexHour) << 24) | 
