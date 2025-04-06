@@ -26,6 +26,7 @@ SHA_INT_TYPE SHA1_rotl(SHA_INT_TYPE r, SHA_INT_TYPE x);
 void SHA1_HashBlock(array<SHA_INT_TYPE, 5>& hashValues, const unsigned char* data);
 void SHA_Reverse_INT64(unsigned char* data, uint64_t value);
 SHA_INT_TYPE SHA_Reverse(SHA_INT_TYPE value);
+uint64_t SHA_Reverse_INT64(uint64_t value);
 bool SHA1(SHA1_DATA* sha1d, const string& data);
 bool SHA1_5(SHA1_DATA* sha1d, const Version ver, const int16_t Timer0, const bool isDSLite, const uint64_t MAC,
             const tm& timeInfo);
@@ -63,11 +64,16 @@ inline SHA_INT_TYPE SHA_Reverse(SHA_INT_TYPE value) {
            ((value & 0xFF000000) >> 24);
 }
 
-// 64ビット値のエンディアン変換
-void SHA_Reverse_INT64(unsigned char* data, uint64_t value) {
-    for (int i = 0; i < 8; ++i) {
-        data[i] = (value >> (56 - i * 8)) & 0xFF;
-    }
+// 64ビット値のエンディアン変換（新しい関数）
+inline uint64_t SHA_Reverse_INT64(uint64_t value) {
+    return ((value & 0x00000000000000FFULL) << 56) |
+           ((value & 0x000000000000FF00ULL) << 40) |
+           ((value & 0x0000000000FF0000ULL) << 24) |
+           ((value & 0x00000000FF000000ULL) << 8) |
+           ((value & 0x000000FF00000000ULL) >> 8) |
+           ((value & 0x0000FF0000000000ULL) >> 24) |
+           ((value & 0x00FF000000000000ULL) >> 40) |
+           ((value & 0xFF00000000000000ULL) >> 56);
 }
 
 // 512ビットブロックのハッシュ計算
@@ -186,27 +192,18 @@ uint64_t SHA1_Array(SHA1_DATA* sha1d, const array<uint32_t, 16>& data) {
 
     array<SHA_INT_TYPE, 5> hashValues = SHA1_H_Val;
 
-    // データを512ビット（64バイト）単位で処理
-    unsigned char buffer[64] = {};
-    memcpy(buffer, data.data(), 64);
-
-    // SHA1 ハッシュ計算
-    SHA1_HashBlock(hashValues, buffer);
+    // SHA1 ハッシュ計算を直接実行
+    SHA1_HashBlock(hashValues, reinterpret_cast<const unsigned char*>(data.data()));
 
     // ハッシュ値を出力
     memcpy(sha1d->Value, hashValues.data(), sizeof(hashValues));
-    
+
     // 上位16バイトをuint64_tとして保持
-    uint64_t Iseed = static_cast<uint64_t>(hashValues[0]) << 32 | hashValues[1];
+    uint64_t Iseed = (static_cast<uint64_t>(hashValues[0]) << 32) | hashValues[1];
     sha1d->Iseed = Iseed;
 
-    // デバッグ出力
-    cout << "Upper 64 bits: 0x" << hex << Iseed << endl;
-
-    snprintf(sha1d->Val_String, sizeof(sha1d->Val_String), "%08X %08X %08X %08X %08X",
-             hashValues[0], hashValues[1], hashValues[2], hashValues[3], hashValues[4]);
-
-    return SHA_Reverse(Iseed);
+    // エンディアン変換したIseedを返す
+    return SHA_Reverse_INT64(Iseed);
 }
 
 // テスト用メイン関数
@@ -214,12 +211,13 @@ int main() {
     SHA1_DATA sha1d;
 
     try {
-        string label;
-        cout << "Enter version label (e.g., JPB1, JPW1, JPB2, JPW2): ";
-        cin >> label;
+        // string label;
+        // cout << "Enter version label (e.g., JPB1, JPW1, JPB2, JPW2): ";
+        // cin >> label;
 
         // Versionオブジェクトを作成
-        Version version(label);
+        Version version("JPB1"); // 例: "JPB1"を指定
+		// Version version(label); // ユーザーからの入力を使用する場合
 
         uint16_t Timer0;
         cout << "Enter Timer0 value (hex, e.g., 0x0C7A): ";
@@ -230,51 +228,19 @@ int main() {
         cin >> isDSLite;
 
         uint64_t MAC;
-        cout << "Enter MAC address (hex, e.g., 0x0009BF6D93CE): ";
-        cin >> hex >> MAC;
-
-        // uint8_t year, month, day, hour, minute, second;
-        // cout << "Enter year (last two digits, e.g., 60 for 2060): ";
-        // cin >> dec >> year;
-		// cout << "Entered year: " << year << endl;
-		// if (year > 99) {
-		// 	throw invalid_argument("Year must be under 100 (last two digits).");
-		// 	return 1;
-		// }
-        // cout << "Enter month (1-12): ";
-        // cin >> month;
-		// cout << "Entered month: " << dec << month << endl;
-        // cout << "Enter day (1-31): ";
-        // cin >> day;
-        // cout << "Enter hour (0-23): ";
-        // cin >> hour;
-        // cout << "Enter minute (0-59): ";
-        // cin >> minute;
-        // cout << "Enter second (0-59): ";
-        // cin >> second;
+        // cout << "Enter MAC address (hex, e.g., 0x0009BF6D93CE): ";
+        // cin >> hex >> MAC;
+		MAC = 0x0009BF6D93CE; // 例: 0x0009BF6D93CEを指定
 
         // GameDateオブジェクトを作成
-        // GameDate gameDate(year, month, day, hour, minute, second);
 		GameDate gameDate(60, 3, 23, 13, 1, 18); // 2060年2月23日13時01分18秒
-		// GameDateオブジェクトを作成（例: 2060年2月23日13時01分18秒）
 
         // 日付と時刻を出力
         cout << "You entered date and time: ";
         gameDate.print();
 
         // SHA1_2関数を呼び出してハッシュを計算
-        if (SHA1_2(&sha1d, version, Timer0, isDSLite, MAC, gameDate)) {
-            cout << "SHA1 Hash: " << sha1d.Val_String << endl;
-
-            // // デバッグ情報の表示
-            // version.print();  // nazoArrayとVCountの値を表示
-            // cout << "Timer0: 0x" << hex << Timer0 << endl;
-            // cout << "Combined VCount and Timer0 (data[5]): 0x" << hex << ((version.getVCount() << 16) | Timer0) << endl;
-            // cout << "Value for data[6]: 0x" << hex << (MAC & 0xFFFF) << endl;
-            // cout << "Value for data[7]: 0x" << hex << (((MAC >> 16) & 0xFFFFFFFF) ^ (isDSLite ? 0x6000006 : 0x6000008)) << endl;
-        } else {
-            cout << "Error: SHA1_2 computation failed." << endl;
-        }
+        cout << "Iseed: " << hex << SHA1_2(&sha1d, version, Timer0, isDSLite, MAC, gameDate) << endl;
 
     } catch (const exception& e) {
         cout << "Error: " << e.what() << endl;

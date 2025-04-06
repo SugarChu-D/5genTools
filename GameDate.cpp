@@ -6,7 +6,7 @@
 
 using namespace std;
 
-// コンストラクタ
+// コンストラクタ uint8_tを使用するためcinで入力を受け取るとASCIICodeが入るので注意
 GameDate::GameDate(uint8_t y, uint8_t m, uint8_t d, uint8_t h, uint8_t min, uint8_t sec)
     : year(y), month(m), day(d), hour(h), minute(min), second(sec) {
     if (month < 1 || month > 12) {
@@ -119,14 +119,16 @@ void GameDate::print() const {
          << " (Weekday: " << static_cast<int>(wday) << ")" << endl;
 }
 
-// int main() {
-//     GameDate gameDate(60, 2, 28, 22, 31, 45); // 2060年2月28日
-//     for (int i = 0; i < 2; i++) {
-//         gameDate.print();
-//         uint32_t date9 = gameDate.getTime9Format();
-//         cout << "Date9 Format (decimal): " << dec << date9 << endl;
-//         cout << "Date9 Format (hex): 0x" << hex << date9 << endl;
-//         gameDate.incrementDay();
-//     }
-//     return 0;
-// }
+int main() {
+    try {
+        // GameDateオブジェクトを作成
+        GameDate gameDate(60, 3, 23, 13, 1, 18);
+        gameDate.print();
+
+    } catch (const exception& e) {
+        cerr << "Error: " << e.what() << endl;
+        return 1;
+    }
+
+    return 0;
+}
