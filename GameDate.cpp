@@ -26,7 +26,7 @@ void GameDate::calculateWeekday() {
     }
 
     // ツェラーの公式を使用して曜日を計算
-    int16_t h = (day + ((13*m + 8) / 5) + y + (y >> 2) +1 ) % 7;
+    int16_t h = (day + ((13*m + 8) / 5) + y + (y >> 2) ) % 7;
     wday = h;
 }
 
