@@ -30,7 +30,7 @@ bool SHA1(SHA1_DATA* sha1d, const string& data);
 bool SHA1_5(SHA1_DATA* sha1d, const Version ver, const int16_t Timer0, const bool isDSLite, const uint64_t MAC,
             const tm& timeInfo);
 bool SHA1_5(SHA1_DATA* sha1d, const Version& ver);
-bool SHA1_Array(SHA1_DATA* sha1d, const array<uint32_t, 13>& data);
+bool SHA1_Array(SHA1_DATA* sha1d, const array<uint32_t, 16>& data);
 bool SHA1_2(SHA1_DATA* sha1d, const Version& ver, const uint16_t Timer0, const bool isDSLite, const uint64_t MAC,
             const GameDate& gameDate);
 
@@ -146,8 +146,8 @@ bool SHA1_2(SHA1_DATA* sha1d, const Version& ver, const uint16_t Timer0, const b
     // nazo arrayを取得
     const auto& nazoArray = ver.getNazoArray();
 
-    // 13個の32ビット値を格納するデータ配列
-    array<uint32_t, 13> data = {};
+    // 16個の32ビット値を格納するデータ配列
+    array<uint32_t, 16> data = {};
 
     // nazo arrayをdataにコピー
     for (size_t i = 0; i < nazoArray.size(); ++i) {
@@ -163,25 +163,25 @@ bool SHA1_2(SHA1_DATA* sha1d, const Version& ver, const uint16_t Timer0, const b
 
     // MACの真ん中32ビットとGxFrameXorFrameのXOR結果をdata[7]に格納
     uint32_t middleMAC = (MAC >> 16) & 0xFFFFFFFF;
-    uint32_t GxFrameXorFrame = isDSLite ? 0x6000006 : 0x6000008;
+    uint32_t GxFrameXorFrame = isDSLite ? 0x6000006 : 0x8000006;
     data[7] = middleMAC ^ GxFrameXorFrame;
 
     // 日付・曜日をdata[8]に格納
     data[8] = gameDate.getDate8Format();
-	cout << "data[8]: " << hex << data[8] << endl; // デバッグ用出力
 
     // 時刻をdata[9]に格納
     data[9] = gameDate.getTime9Format();
-	cout << "data[9]: " << hex << data[9] << endl; // デバッグ用出力
 
-    // 固定値をdata[12]に格納
+    // 固定値
     data[12] = 0xFF2F0000;
+	data[13] = 0x80000000;
+	data[15] = 0x000001A0;
 
     // SHA1_Array関数を呼び出してハッシュ計算
     return SHA1_Array(sha1d, data);
 }
 
-bool SHA1_Array(SHA1_DATA* sha1d, const array<uint32_t, 13>& data) {
+bool SHA1_Array(SHA1_DATA* sha1d, const array<uint32_t, 16>& data) {
     if (!sha1d) return false;
 
     // デバッグ出力：データ配列の内容を16進数で表示
@@ -256,7 +256,7 @@ int main() {
 
         // GameDateオブジェクトを作成
         // GameDate gameDate(year, month, day, hour, minute, second);
-		GameDate gameDate(60, 2, 23, 13, 1, 18); // 2060年2月23日13時01分18秒
+		GameDate gameDate(60, 3, 23, 13, 1, 18); // 2060年2月23日13時01分18秒
 		// GameDateオブジェクトを作成（例: 2060年2月23日13時01分18秒）
 
         // 日付と時刻を出力
