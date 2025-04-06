@@ -5,8 +5,9 @@
 #include <cstdint>
 
 struct SHA1_DATA {
-    uint32_t Value[5];
-    char Val_String[45];
+    uint32_t Value[5];     // 従来のハッシュ値配列
+    uint64_t Iseed;   // 上位16バイトを64ビット値として保持
+    char Val_String[50];   // 文字列表現
 };
 
 // SHA1関数の宣言
