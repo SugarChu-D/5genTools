@@ -30,9 +30,9 @@ bool SHA1(SHA1_DATA* sha1d, const string& data);
 bool SHA1_5(SHA1_DATA* sha1d, const Version ver, const int16_t Timer0, const bool isDSLite, const uint64_t MAC,
             const tm& timeInfo);
 bool SHA1_5(SHA1_DATA* sha1d, const Version& ver);
-bool SHA1_Array(SHA1_DATA* sha1d, const array<uint32_t, 16>& data);
-bool SHA1_2(SHA1_DATA* sha1d, const Version& ver, const uint16_t Timer0, const bool isDSLite, const uint64_t MAC,
-            const GameDate& gameDate);
+uint64_t SHA1_Array(SHA1_DATA* sha1d, const array<uint32_t, 16>& data);
+uint64_t SHA1_2(SHA1_DATA* sha1d, const Version& ver, const uint16_t Timer0, const bool isDSLite, const uint64_t MAC,
+                const GameDate& gameDate);
 
 // 定数取得関数
 inline SHA_INT_TYPE SHA1_K(SHA_INT_TYPE t) {
@@ -74,8 +74,7 @@ void SHA_Reverse_INT64(unsigned char* data, uint64_t value) {
 void SHA1_HashBlock(array<SHA_INT_TYPE, 5>& hashValues, const unsigned char* data) {
     array<SHA_INT_TYPE, 80> words = {};
     for (int i = 0; i < 16; ++i) {
-//        words[i] = SHA_Reverse(reinterpret_cast<const uint32_t*>(data)[i]);
-        words[i] = reinterpret_cast<const uint32_t*>(data)[i];
+        words[i] = reinterpret_cast<const uint32_t*>(data)[i]; // 本来はエンディアン変換をするが、ここでは省略
     }
     for (int t = 16; t < 80; ++t) {
         words[t] = SHA1_rotl(1, words[t - 3] ^ words[t - 8] ^ words[t - 14] ^ words[t - 16]);
@@ -141,8 +140,8 @@ void SHA1_HashBlock(array<SHA_INT_TYPE, 5>& hashValues, const unsigned char* dat
 //     return true;
 // }
 
-bool SHA1_2(SHA1_DATA* sha1d, const Version& ver, const uint16_t Timer0, const bool isDSLite, const uint64_t MAC, const GameDate& gameDate) {
-    if (!sha1d) return false;
+uint64_t SHA1_2(SHA1_DATA* sha1d, const Version& ver, const uint16_t Timer0, const bool isDSLite, const uint64_t MAC, const GameDate& gameDate) {
+    if (!sha1d) return 0;
 
     // nazo arrayを取得
     const auto& nazoArray = ver.getNazoArray();
@@ -174,39 +173,40 @@ bool SHA1_2(SHA1_DATA* sha1d, const Version& ver, const uint16_t Timer0, const b
     data[9] = gameDate.getTime9Format();
 
     // 固定値
-    data[12] = 0xFF2F0000;
+    data[12] = SHA_Reverse(0x2fff);
 	data[13] = 0x80000000;
 	data[15] = 0x000001A0;
 
-    // SHA1_Array関数を呼び出してハッシュ計算
+    // SHA1_Array関数を呼び出してハッシュ計算してIseedを返す
     return SHA1_Array(sha1d, data);
 }
 
-bool SHA1_Array(SHA1_DATA* sha1d, const array<uint32_t, 16>& data) {
-    if (!sha1d) return false;
-
-    // デバッグ出力：データ配列の内容を16進数で表示
-    cout << "\nDebug: Data array content before hash calculation:" << endl;
-    for (size_t i = 0; i < data.size(); ++i) {
-        cout << "data[" << dec << i << "]: 0x" << hex << setfill('0') << setw(8) << data[i] << endl;
-    }
-    cout << "------------------------" << endl;
+uint64_t SHA1_Array(SHA1_DATA* sha1d, const array<uint32_t, 16>& data) {
+    if (!sha1d) return 0;
 
     array<SHA_INT_TYPE, 5> hashValues = SHA1_H_Val;
 
     // データを512ビット（64バイト）単位で処理
     unsigned char buffer[64] = {};
-	memcpy(buffer, data.data(), 64);
+    memcpy(buffer, data.data(), 64);
 
     // SHA1 ハッシュ計算
     SHA1_HashBlock(hashValues, buffer);
 
     // ハッシュ値を出力
     memcpy(sha1d->Value, hashValues.data(), sizeof(hashValues));
+    
+    // 上位16バイトをuint64_tとして保持
+    uint64_t Iseed = static_cast<uint64_t>(hashValues[0]) << 32 | hashValues[1];
+    sha1d->Iseed = Iseed;
+
+    // デバッグ出力
+    cout << "Upper 64 bits: 0x" << hex << Iseed << endl;
+
     snprintf(sha1d->Val_String, sizeof(sha1d->Val_String), "%08X %08X %08X %08X %08X",
              hashValues[0], hashValues[1], hashValues[2], hashValues[3], hashValues[4]);
 
-    return true;
+    return SHA_Reverse(Iseed);
 }
 
 // テスト用メイン関数
