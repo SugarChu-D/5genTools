@@ -19,15 +19,14 @@ GameDate::GameDate(uint8_t y, uint8_t m, uint8_t d, uint8_t h, uint8_t min, uint
 }
 // 曜日を計算するプライベートメソッド
 void GameDate::calculateWeekday() {
-    uint8_t m = month;
-    if (m == 1 || m == 2) {
-        if (year == 0) year = 94; // 2000年を扱う 挙動は94年と変わらないはず
-        else year--;
+    uint8_t y = year,m = month;
+    if (m < 3 ) {
+        y = (y == 0) ? 99 : y - 1;
         m += 12;
     }
 
     // ツェラーの公式を使用して曜日を計算
-    int16_t h = (day + ((13*m + 8) / 5) + year + (year / 4)  ) % 7;
+    int16_t h = (day + ((13*m + 8) / 5) + y + (y >> 2) +1 ) % 7;
     wday = h;
 }
 
@@ -57,6 +56,48 @@ void GameDate::incrementDay() {
     calculateWeekday(); // 曜日を再計算
 }
 
+// sha1に渡すためのもの
+uint32_t GameDate::getDate8Format() const {
+    // 10進数を16進数に変換する処理を直接ビット演算で行う
+    uint8_t hexYear = ((year / 10) << 4) | (year % 10);
+    uint8_t hexMonth = ((month / 10) << 4) | (month % 10);
+    uint8_t hexDay = ((day / 10) << 4) | (day % 10);
+
+    // // デバッグ出力
+    // cout << "Decimal year: " << static_cast<int>(year) 
+    //      << " -> Hex: 0x" << hex << static_cast<int>(hexYear) << endl;
+    // cout << "Decimal month: " << static_cast<int>(month) 
+    //      << " -> Hex: 0x" << hex << static_cast<int>(hexMonth) << endl;
+    // cout << "Decimal day: " << static_cast<int>(day) 
+    //      << " -> Hex: 0x" << hex << static_cast<int>(hexDay) << endl;
+
+    // 1回のビット演算で結合
+    return (static_cast<uint32_t>(hexYear) << 24) | 
+           (static_cast<uint32_t>(hexMonth) << 16) | 
+           (static_cast<uint32_t>(hexDay) << 8) | 
+           wday;
+}
+
+uint32_t GameDate::getTime9Format() const {
+    // 各値を10進数から16進数として解釈
+    uint8_t hexHour = decimalToHex(hour + (hour > 11 ? 40 : 0));
+    uint8_t hexMinute = decimalToHex(minute);
+    uint8_t hexSecond = decimalToHex(second);
+
+    // デバッグ出力
+    cout << "Decimal hour: " << static_cast<int>(hour) 
+         << " -> Hex: 0x" << hex << static_cast<int>(hexHour) << endl;
+    cout << "Decimal minute: " << static_cast<int>(minute) 
+         << " -> Hex: 0x" << hex << static_cast<int>(hexMinute) << endl;
+    cout << "Decimal second: " << static_cast<int>(second) 
+         << " -> Hex: 0x" << hex << static_cast<int>(hexSecond) << endl;
+
+    // 時、分、秒を結合
+    return (static_cast<uint32_t>(hexHour) << 24) | 
+           (static_cast<uint32_t>(hexMinute) << 16) | 
+           (static_cast<uint32_t>(hexSecond) << 8) | 
+           0x00;
+}
 
 // ゲッター
 uint8_t GameDate::getYear() const { return year; }
@@ -69,7 +110,7 @@ uint8_t GameDate::getWeekday() const { return wday; }
 
 // デバッグ用の出力
 void GameDate::print() const {
-    cout << "Date: " << (2000 + year) << "-"
+    cout << "Date: 20" << dec <<  static_cast<int>(year) << "-"
          << setw(2) << setfill('0') << static_cast<int>(month) << "-"
          << setw(2) << setfill('0') << static_cast<int>(day) << " "
          << setw(2) << setfill('0') << static_cast<int>(hour) << ":"
@@ -78,11 +119,14 @@ void GameDate::print() const {
          << " (Weekday: " << static_cast<int>(wday) << ")" << endl;
 }
 
-int main() {
-    GameDate gameDate(60, 2, 28, 0, 0, 0); // 2060年2月28日
-    for (int i = 0; i < 5; i++) {
-        gameDate.print();
-        gameDate.incrementDay();
-    }
-    return 0;
-}
+// int main() {
+//     GameDate gameDate(60, 2, 28, 22, 31, 45); // 2060年2月28日
+//     for (int i = 0; i < 2; i++) {
+//         gameDate.print();
+//         uint32_t date9 = gameDate.getTime9Format();
+//         cout << "Date9 Format (decimal): " << dec << date9 << endl;
+//         cout << "Date9 Format (hex): 0x" << hex << date9 << endl;
+//         gameDate.incrementDay();
+//     }
+//     return 0;
+// }

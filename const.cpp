@@ -11,11 +11,11 @@ using namespace std;
 class Version {
     string Label; // バージョン名
     array<uint32_t, 5> nazoArray; // nazo値を5つの整数として保持
-    int VCount; // VCountの値
+    uint32_t VCount; // VCountの値
 
     // ラベルに基づいて値を設定するヘルパー関数
     void initializeValues() {
-        static const map<string, pair<array<uint32_t, 5>, int>> versionData = {
+        static const map<string, pair<array<uint32_t, 5>, uint32_t>> versionData = {  // intからuint32_tに変更
             {"JPB1", {{0x02215F10, 0x0221600C, 0x0221600C, 0x02216058, 0x02216058}, 0x60}},
             {"JPW1", {{0x02215F30, 0x0226020C, 0x0226020C, 0x0226078, 0x0226078}, 0x5F}},
             {"JPB2", {{0x209A8DC, 0x2039AC9, 0x21FF9B0, 0x21FFA04, 0x21FFA04}, 0x82}},
@@ -40,7 +40,7 @@ public:
     // ゲッター
     string getLabel() const { return Label; }
     array<uint32_t, 5> getNazoArray() const { return nazoArray; }
-    int getVCount() const { return VCount; }
+    uint32_t getVCount() const { return VCount; }  // 戻り値の型をuint32_tに変更
 
     // デバッグ用の出力
     void print() const {
@@ -52,15 +52,37 @@ public:
     }
 };
 
-int main() {
-    char Data[2048] = {0}; // 初期化
-    try {
-        // ラベルに基づいてオブジェクトを作成
-        Version v1("JPB2");
-        v1.print();
-    } catch (const exception& e) {
-        cerr << "Error: " << e.what() << endl;
-    }
-
-    return 0;
-}
+// int main() {
+//     const array<string, 4> labels = {"JPB1", "JPW1", "JPB2", "JPW2"};
+    
+//     try {
+//         for (const auto& label : labels) {
+//             cout << "\nTesting getNazoArray for label '" << label << "':" << endl;
+            
+//             // Versionオブジェクトを作成
+//             Version version(label);
+            
+//             // getNazoArrayを呼び出してnazo配列を取得
+//             auto nazoArray = version.getNazoArray();
+            
+//             // 結果を16進数形式で出力
+//             cout << "Nazo Array: ";
+//             for (const auto& val : nazoArray) {
+//                 cout << "0x" << setfill('0') << setw(8) << hex << val << " ";
+//             }
+//             cout << endl;
+            
+//             // VCountも表示
+//             cout << "VCount: 0x" << hex << version.getVCount() << endl;
+//         }
+        
+//         // エラーケースのテスト
+//         cout << "\nTesting invalid label:" << endl;
+//         Version invalid("InvalidLabel");
+        
+//     } catch (const exception& e) {
+//         cout << "Expected error caught: " << e.what() << endl;
+//     }
+    
+//     return 0;
+// }

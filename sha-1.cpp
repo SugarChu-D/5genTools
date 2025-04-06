@@ -1,10 +1,15 @@
 #include "sha-1.h"
-#include <cstring>
+#include "const.cpp"
+#include "GameDate.cpp"
 #include <iostream>
-#include <cstdio>
+#include <iomanip>
 #include <array>
 #include <string>
+#include <cstdint>
+#include <cstring>
+#include <cstdio>
 #include <algorithm>
+#include <bitset>
 
 using namespace std;
 
@@ -22,6 +27,12 @@ void SHA1_HashBlock(array<SHA_INT_TYPE, 5>& hashValues, const unsigned char* dat
 void SHA_Reverse_INT64(unsigned char* data, uint64_t value);
 SHA_INT_TYPE SHA_Reverse(SHA_INT_TYPE value);
 bool SHA1(SHA1_DATA* sha1d, const string& data);
+bool SHA1_5(SHA1_DATA* sha1d, const Version ver, const int16_t Timer0, const bool isDSLite, const uint64_t MAC,
+            const tm& timeInfo);
+bool SHA1_5(SHA1_DATA* sha1d, const Version& ver);
+bool SHA1_Array(SHA1_DATA* sha1d, const array<uint32_t, 13>& data);
+bool SHA1_2(SHA1_DATA* sha1d, const Version& ver, const uint16_t Timer0, const bool isDSLite, const uint64_t MAC,
+            const GameDate& gameDate);
 
 // 定数取得関数
 inline SHA_INT_TYPE SHA1_K(SHA_INT_TYPE t) {
@@ -129,23 +140,145 @@ bool SHA1(SHA1_DATA* sha1d, const string& data) {
     return true;
 }
 
+bool SHA1_2(SHA1_DATA* sha1d, const Version& ver, const uint16_t Timer0, const bool isDSLite, const uint64_t MAC, const GameDate& gameDate) {
+    if (!sha1d) return false;
+
+    // nazo arrayを取得
+    const auto& nazoArray = ver.getNazoArray();
+
+    // 13個の32ビット値を格納するデータ配列
+    array<uint32_t, 13> data = {};
+
+    // nazo arrayをdataにコピー
+    for (size_t i = 0; i < nazoArray.size(); ++i) {
+        data[i] = SHA_Reverse(nazoArray[i]);
+    }
+
+    // VCountとTimer0を結合してdata[5]に格納
+    uint32_t VCount = ver.getVCount();
+    data[5] = SHA_Reverse((VCount << 16) | Timer0);
+
+    // MACの下位16ビットをdata[6]に格納
+    data[6] = (MAC & 0xFFFF);
+
+    // MACの真ん中32ビットとGxFrameXorFrameのXOR結果をdata[7]に格納
+    uint32_t middleMAC = (MAC >> 16) & 0xFFFFFFFF;
+    uint32_t GxFrameXorFrame = isDSLite ? 0x6000006 : 0x6000008;
+    data[7] = middleMAC ^ GxFrameXorFrame;
+
+    // 日付・曜日をdata[8]に格納
+    data[8] = gameDate.getDate8Format();
+	cout << "data[8]: " << hex << data[8] << endl; // デバッグ用出力
+
+    // 時刻をdata[9]に格納
+    data[9] = gameDate.getTime9Format();
+	cout << "data[9]: " << hex << data[9] << endl; // デバッグ用出力
+
+    // 固定値をdata[12]に格納
+    data[12] = 0xFF2F0000;
+
+    // SHA1_Array関数を呼び出してハッシュ計算
+    return SHA1_Array(sha1d, data);
+}
+
+bool SHA1_Array(SHA1_DATA* sha1d, const array<uint32_t, 13>& data) {
+    if (!sha1d) return false;
+
+    // デバッグ出力：データ配列の内容を16進数で表示
+    cout << "\nDebug: Data array content before hash calculation:" << endl;
+    for (size_t i = 0; i < data.size(); ++i) {
+        cout << "data[" << dec << i << "]: 0x" << hex << setfill('0') << setw(8) << data[i] << endl;
+    }
+    cout << "------------------------" << endl;
+
+    array<SHA_INT_TYPE, 5> hashValues = SHA1_H_Val;
+
+    // データを512ビット（64バイト）単位で処理
+    unsigned char buffer[64] = {};
+    for (size_t i = 0; i < data.size(); ++i) {
+        memcpy(buffer + (i * 4), &data[i], sizeof(uint32_t));
+    }
+
+    // SHA1 ハッシュ計算
+    SHA1_HashBlock(hashValues, buffer);
+
+    // ハッシュ値を出力
+    memcpy(sha1d->Value, hashValues.data(), sizeof(hashValues));
+    snprintf(sha1d->Val_String, sizeof(sha1d->Val_String), "%08X %08X %08X %08X %08X",
+             hashValues[0], hashValues[1], hashValues[2], hashValues[3], hashValues[4]);
+
+    return true;
+}
+
 // テスト用メイン関数
 int main() {
     SHA1_DATA sha1d;
-    string input;
 
-    cout << "Enter data (max 2048 bytes): ";
-    getline(cin, input);
+    try {
+        string label;
+        cout << "Enter version label (e.g., JPB1, JPW1, JPB2, JPW2): ";
+        cin >> label;
 
-    if (input.size() > 2048) {
-        cerr << "Error: Input exceeds 2048 bytes." << endl;
-        return 1;
-    }
+        // Versionオブジェクトを作成
+        Version version(label);
 
-    if (SHA1(&sha1d, input)) {
-        cout << "SHA1: " << sha1d.Val_String << endl;
-    } else {
-        cerr << "Error: SHA1 computation failed." << endl;
+        uint16_t Timer0;
+        cout << "Enter Timer0 value (hex, e.g., 0x0C7A): ";
+        cin >> hex >> Timer0;
+
+        bool isDSLite;
+        cout << "Is it a DS Lite? (1 for true, 0 for false): ";
+        cin >> isDSLite;
+
+        uint64_t MAC;
+        cout << "Enter MAC address (hex, e.g., 0x0009BF6D93CE): ";
+        cin >> hex >> MAC;
+
+        // uint8_t year, month, day, hour, minute, second;
+        // cout << "Enter year (last two digits, e.g., 60 for 2060): ";
+        // cin >> dec >> year;
+		// cout << "Entered year: " << year << endl;
+		// if (year > 99) {
+		// 	throw invalid_argument("Year must be under 100 (last two digits).");
+		// 	return 1;
+		// }
+        // cout << "Enter month (1-12): ";
+        // cin >> month;
+		// cout << "Entered month: " << dec << month << endl;
+        // cout << "Enter day (1-31): ";
+        // cin >> day;
+        // cout << "Enter hour (0-23): ";
+        // cin >> hour;
+        // cout << "Enter minute (0-59): ";
+        // cin >> minute;
+        // cout << "Enter second (0-59): ";
+        // cin >> second;
+
+        // GameDateオブジェクトを作成
+        // GameDate gameDate(year, month, day, hour, minute, second);
+		GameDate gameDate(60, 2, 23, 13, 1, 18); // 2060年2月23日13時01分18秒
+		// GameDateオブジェクトを作成（例: 2060年2月23日13時01分18秒）
+
+        // 日付と時刻を出力
+        cout << "You entered date and time: ";
+        gameDate.print();
+
+        // SHA1_2関数を呼び出してハッシュを計算
+        if (SHA1_2(&sha1d, version, Timer0, isDSLite, MAC, gameDate)) {
+            cout << "SHA1 Hash: " << sha1d.Val_String << endl;
+
+            // // デバッグ情報の表示
+            // version.print();  // nazoArrayとVCountの値を表示
+            // cout << "Timer0: 0x" << hex << Timer0 << endl;
+            // cout << "Combined VCount and Timer0 (data[5]): 0x" << hex << ((version.getVCount() << 16) | Timer0) << endl;
+            // cout << "Value for data[6]: 0x" << hex << (MAC & 0xFFFF) << endl;
+            // cout << "Value for data[7]: 0x" << hex << (((MAC >> 16) & 0xFFFFFFFF) ^ (isDSLite ? 0x6000006 : 0x6000008)) << endl;
+        } else {
+            cout << "Error: SHA1_2 computation failed." << endl;
+        }
+
+    } catch (const exception& e) {
+        cout << "Error: " << e.what() << endl;
     }
 
     return 0;

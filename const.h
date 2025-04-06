@@ -3,27 +3,27 @@
 
 #include <string>
 #include <array>
-#include <stdexcept>
 #include <map>
 
 using namespace std;
 
 class Version {
-    string Label; // バージョン名
-    string nazo; // nazo値（5つの整数をガッチャンコした文字列）
-    int VCount; // VCountの値
+private:
+    string Label;                    // バージョン名
+    array<uint32_t, 5> nazoArray;   // nazo値を5つの整数として保持
+    uint32_t VCount;                // VCountの値
 
     // ラベルに基づいて値を設定するヘルパー関数
     void initializeValues();
 
 public:
     // コンストラクタ
-    Version(string& label);
+    Version(string label);
 
     // ゲッター
     string getLabel() const;
-    string getNazo() const;
-    int getVCount() const;
+    array<uint32_t, 5> getNazoArray() const;
+    uint32_t getVCount() const;
 
     // デバッグ用の出力
     void print() const;

@@ -20,6 +20,11 @@ private:
     uint8_t getDaysInMonth(uint8_t month, uint8_t year) const; // 月ごとの最大日数を取得
     bool isLeapYear(uint16_t fullYear) const; // 閏年判定
 
+    // 10進数を16進数として解釈する関数
+    uint8_t decimalToHex(uint8_t decimal) const {
+        return ((decimal / 10) << 4) | (decimal % 10);
+    }
+
 public:
     // コンストラクタ
     GameDate(uint8_t y, uint8_t m, uint8_t d, uint8_t h, uint8_t min, uint8_t sec);
@@ -32,6 +37,10 @@ public:
     uint8_t getMinute() const;
     uint8_t getSecond() const;
     uint8_t getWeekday() const;
+
+    // sha1に渡すためのもの
+    uint32_t getDate8Format() const; // data[8]形式の日付を取得
+    uint32_t getTime9Format() const; // data[9]形式の時刻を取得
 
     void incrementDay(); // 日付を1日進める
     void print() const;  // デバッグ用の出力
