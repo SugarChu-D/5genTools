@@ -74,7 +74,8 @@ void SHA_Reverse_INT64(unsigned char* data, uint64_t value) {
 void SHA1_HashBlock(array<SHA_INT_TYPE, 5>& hashValues, const unsigned char* data) {
     array<SHA_INT_TYPE, 80> words = {};
     for (int i = 0; i < 16; ++i) {
-        words[i] = SHA_Reverse(reinterpret_cast<const uint32_t*>(data)[i]);
+//        words[i] = SHA_Reverse(reinterpret_cast<const uint32_t*>(data)[i]);
+        words[i] = reinterpret_cast<const uint32_t*>(data)[i];
     }
     for (int t = 16; t < 80; ++t) {
         words[t] = SHA1_rotl(1, words[t - 3] ^ words[t - 8] ^ words[t - 14] ^ words[t - 16]);
@@ -106,39 +107,39 @@ void SHA1_HashBlock(array<SHA_INT_TYPE, 5>& hashValues, const unsigned char* dat
 }
 
 // SHA-1アルゴリズム
-bool SHA1(SHA1_DATA* sha1d, const string& data) {
-    if (!sha1d) return false;
+// bool SHA1(SHA1_DATA* sha1d, const string& data) {
+//     if (!sha1d) return false;
 
-    array<SHA_INT_TYPE, 5> hashValues = SHA1_H_Val;
-    size_t dataSize = data.size();
-    size_t fullBlocks = dataSize / 64;
-    size_t remainingBytes = dataSize % 64;
+//     array<SHA_INT_TYPE, 5> hashValues = SHA1_H_Val;
+//     size_t dataSize = data.size();
+//     size_t fullBlocks = dataSize / 64;
+//     size_t remainingBytes = dataSize % 64;
 
-    // 64バイトごとに処理
-    for (size_t i = 0; i < fullBlocks; ++i) {
-        SHA1_HashBlock(hashValues, reinterpret_cast<const unsigned char*>(data.data() + i * 64));
-    }
+//     // 64バイトごとに処理
+//     for (size_t i = 0; i < fullBlocks; ++i) {
+//         SHA1_HashBlock(hashValues, reinterpret_cast<const unsigned char*>(data.data() + i * 64));
+//     }
 
-    // パディング処理
-    unsigned char buffer[64] = {};
-    memcpy(buffer, data.data() + fullBlocks * 64, remainingBytes);
-    buffer[remainingBytes] = 0x80;
+//     // パディング処理
+//     unsigned char buffer[64] = {};
+//     memcpy(buffer, data.data() + fullBlocks * 64, remainingBytes);
+//     buffer[remainingBytes] = 0x80;
 
-    if (remainingBytes >= 56) {
-        SHA1_HashBlock(hashValues, buffer);
-        memset(buffer, 0, 64);
-    }
+//     if (remainingBytes >= 56) {
+//         SHA1_HashBlock(hashValues, buffer);
+//         memset(buffer, 0, 64);
+//     }
 
-    uint64_t bitLength = dataSize * 8;
-    SHA_Reverse_INT64(buffer + 56, bitLength);
-    SHA1_HashBlock(hashValues, buffer);
+//     uint64_t bitLength = dataSize * 8;
+//     SHA_Reverse_INT64(buffer + 56, bitLength);
+//     SHA1_HashBlock(hashValues, buffer);
 
-    // ハッシュ値を出力
-    memcpy(sha1d->Value, hashValues.data(), sizeof(hashValues));
-    sprintf(sha1d->Val_String, "%08X %08X %08X %08X %08X",
-            hashValues[0], hashValues[1], hashValues[2], hashValues[3], hashValues[4]);
-    return true;
-}
+//     // ハッシュ値を出力
+//     memcpy(sha1d->Value, hashValues.data(), sizeof(hashValues));
+//     sprintf(sha1d->Val_String, "%08X %08X %08X %08X %08X",
+//             hashValues[0], hashValues[1], hashValues[2], hashValues[3], hashValues[4]);
+//     return true;
+// }
 
 bool SHA1_2(SHA1_DATA* sha1d, const Version& ver, const uint16_t Timer0, const bool isDSLite, const uint64_t MAC, const GameDate& gameDate) {
     if (!sha1d) return false;
@@ -195,9 +196,7 @@ bool SHA1_Array(SHA1_DATA* sha1d, const array<uint32_t, 16>& data) {
 
     // データを512ビット（64バイト）単位で処理
     unsigned char buffer[64] = {};
-    for (size_t i = 0; i < data.size(); ++i) {
-        memcpy(buffer + (i * 4), &data[i], sizeof(uint32_t));
-    }
+	memcpy(buffer, data.data(), 64);
 
     // SHA1 ハッシュ計算
     SHA1_HashBlock(hashValues, buffer);
