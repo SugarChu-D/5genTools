@@ -17,9 +17,9 @@ class Version {
     void initializeValues() {
         static const map<string, pair<array<uint32_t, 5>, uint32_t>> versionData = {  // intからuint32_tに変更
             {"JPB1", {{0x02215F10, 0x0221600C, 0x0221600C, 0x02216058, 0x02216058}, 0x60}},
-            {"JPW1", {{0x02215F30, 0x0226020C, 0x0226020C, 0x0226078, 0x0226078}, 0x5F}},
-            {"JPB2", {{0x209A8DC, 0x2039AC9, 0x21FF9B0, 0x21FFA04, 0x21FFA04}, 0x82}},
-            {"JPW2", {{0x209A8FC, 0x2039AF5, 0x21FF9D0, 0x21FFA24, 0x21FFA24}, 0x82}}
+            {"JPW1", {{0x02215F30, 0x0226020C, 0x0226020C, 0x02216078, 0x02216078}, 0x5F}},
+            {"JPB2", {{0x0209A8DC, 0x02039AC9, 0x021FF9B0, 0x021FFA04, 0x021FFA04}, 0x82}},
+            {"JPW2", {{0x0209A8FC, 0x02039AF5, 0x021FF9D0, 0x021FFA24, 0x021FFA24}, 0x82}}
         };
 
         auto it = versionData.find(Label);
