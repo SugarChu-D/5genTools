@@ -146,7 +146,7 @@ void SHA1_HashBlock(array<SHA_INT_TYPE, 5>& hashValues, const unsigned char* dat
 //     return true;
 // }
 
-uint64_t initialSEED(SHA1_DATA* sha1d, const Version& ver, const uint16_t Timer0, const bool isDSLite, const uint64_t MAC, const GameDate& gameDate) {
+uint64_t initialSEED(SHA1_DATA* sha1d, const Version& ver, const uint16_t Timer0, const bool isDSLite, const uint64_t MAC, const GameDate& gameDate, const uint16_t keypress) {
     if (!sha1d) return 0;
 
     // nazo arrayを取得
@@ -179,7 +179,7 @@ uint64_t initialSEED(SHA1_DATA* sha1d, const Version& ver, const uint16_t Timer0
     data[9] = gameDate.getTime9Format();
 
     // 固定値
-    data[12] = SHA_Reverse(0x2fff);
+    data[12] = SHA_Reverse(keypress);
 	data[13] = 0x80000000;
 	data[15] = 0x000001A0;
 
@@ -240,7 +240,7 @@ int main() {
         gameDate.print();
 
         // initialSEED関数を呼び出してハッシュを計算
-        cout << "Iseed: " << hex << initialSEED(&sha1d, version, Timer0, isDSLite, MAC, gameDate) << endl;
+        cout << "Iseed: " << hex << initialSEED(&sha1d, version, Timer0, isDSLite, MAC, gameDate,0x2fff) << endl;
 
     } catch (const exception& e) {
         cout << "Error: " << e.what() << endl;
