@@ -15,6 +15,7 @@ private:
     uint8_t minute;  // 分（範囲: 0-59）
     uint8_t second;  // 秒（範囲: 0-59）
     uint8_t wday;    // 曜日（範囲: 0-6, 0=日曜, 6=土曜）
+    uint8_t season;  // 季節（範囲: 0-3, 1=春, 2=夏, 3=秋, 0=冬）
 
     void calculateWeekday(); // 曜日を計算するプライベートメソッド
     uint8_t getDaysInMonth(uint8_t month, uint8_t year) const; // 月ごとの最大日数を取得
@@ -25,18 +26,24 @@ private:
         return ((decimal / 10) << 4) | (decimal % 10);
     }
 
+    // 季節を更新するプライベートメソッド
+    void updateSeason() {
+        season = (month) % 4; // 0=冬, 1=春, 2=夏, 3=秋
+    }
+
 public:
     // コンストラクタ
     GameDate(uint8_t y, uint8_t m, uint8_t d, uint8_t h, uint8_t min, uint8_t sec);
 
     // ゲッター
-    uint8_t getYear() const;
-    uint8_t getMonth() const;
-    uint8_t getDay() const;
-    uint8_t getHour() const;
-    uint8_t getMinute() const;
-    uint8_t getSecond() const;
-    uint8_t getWeekday() const;
+    uint8_t getYear() const { return year; } // 年を取得
+    uint8_t getMonth() const { return month; } // 月を取得
+    uint8_t getDay() const { return day; }; // 日を取得
+    uint8_t getHour() const { return hour; }; // 時を取得
+    uint8_t getMinute() const { return minute; }; // 分を取得
+    uint8_t getSecond() const { return second; }; // 秒を取得
+    uint8_t getWeekday() const { return wday; } // 曜日を取得;
+    uint8_t getSeason() const { return season; } // 季節を取得
 
     // sha1に渡すためのもの
     uint32_t getDate8Format() const; // data[8]形式の日付を取得

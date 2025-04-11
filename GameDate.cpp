@@ -16,12 +16,16 @@ GameDate::GameDate(uint8_t y, uint8_t m, uint8_t d, uint8_t h, uint8_t min, uint
         throw invalid_argument("Invalid day: " + to_string(day));
     }
     calculateWeekday(); // 曜日を自動計算
+    updateSeason(); // 季節を自動計算
+    if (hour > 23) {
+        throw invalid_argument("Invalid hour: " + to_string(hour));
+    }
 }
 // 曜日を計算するプライベートメソッド
 void GameDate::calculateWeekday() {
     uint8_t y = year,m = month;
-    if (m < 3 ) {
-        y = (y == 0) ? 99 : y - 1;
+    if (m < 3) {
+        y = (y == 0) ? 93 : y - 1;
         m += 12;
     }
 
@@ -54,6 +58,7 @@ void GameDate::incrementDay() {
         }
     }
     calculateWeekday(); // 曜日を再計算
+    updateSeason(); // 季節を更新
 }
 
 // sha1に渡すためのもの
@@ -98,15 +103,6 @@ uint32_t GameDate::getTime9Format() const {
            (static_cast<uint32_t>(hexSecond) << 8) | 
            0x00;
 }
-
-// ゲッター
-uint8_t GameDate::getYear() const { return year; }
-uint8_t GameDate::getMonth() const { return month; }
-uint8_t GameDate::getDay() const { return day; }
-uint8_t GameDate::getHour() const { return hour; }
-uint8_t GameDate::getMinute() const { return minute; }
-uint8_t GameDate::getSecond() const { return second; }
-uint8_t GameDate::getWeekday() const { return wday; }
 
 // デバッグ用の出力
 void GameDate::print() const {
