@@ -119,16 +119,16 @@ void GameDate::print() const {
          << " (Weekday: " << static_cast<int>(wday) << ")" << endl;
 }
 
-int main() {
-    try {
-        // GameDateオブジェクトを作成
-        GameDate gameDate(60, 3, 23, 13, 1, 18);
-        gameDate.print();
+// int main() {
+//     try {
+//         // GameDateオブジェクトを作成
+//         GameDate gameDate(60, 3, 23, 13, 1, 18);
+//         gameDate.print();
 
-    } catch (const exception& e) {
-        cerr << "Error: " << e.what() << endl;
-        return 1;
-    }
+//     } catch (const exception& e) {
+//         cerr << "Error: " << e.what() << endl;
+//         return 1;
+//     }
 
-    return 0;
-}
+//     return 0;
+// }
