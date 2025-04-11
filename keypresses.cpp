@@ -5,9 +5,10 @@
 using namespace std;
 
 /*キー入力について
-デフォルトは0xff2f　0b1111-1111-0010-1111
+デフォルトは0x2fff　0b1011-1111-1111-1111
 ここからボタンが入力されるたびに1桁ずつ1が0になっている．
-左から　下　上　左　右　Start Select　A　B　0010固定　Y　X　L　Rという順番に対応している．
+左から　Y　X　L　R　下　上　左　右　Start Select　B　Aという順番に対応している．
+sha-1に入れるときはエンディアン変換されており，2ffd(Bボタン入力)がfd2fになる．
 初期seedを計算するならこれを全探索してもらうのが早いだろう．
 ただし，真ん中にある0010と，上下左右反対のキーの同時押し・ソフトリセットの禁忌をうまいこと外してあげる必要があるので，その実装がめんどくさい．
 何か知らんけどforループで回すと桁の右から順番に計算してくるので，for文を逆に回すことで対策としている．
@@ -15,19 +16,13 @@ using namespace std;
 
 // 各ビットに対応するキー名
 const vector<string> bitToKey = {
-    "R", "L", "X", "Y", "Unused", "Unused", "Unused", "Unused",
-    "B", "A", "Select", "Start", "Right", "Left", "Up", "Down"
+    "A", "B", "Select", "Start","Right", "Left", "Up", "Down", "R", "L", "X", "Y"
 };
 
 // 16ビット数値を解析して対応するキーを取得
 vector<string> getKeysFromBits(unsigned short bits) {
     vector<string> keys;
-    for (int i = 0; i < 4; i++) {
-        if (!(bits & (1 << i))) {
-            keys.push_back(bitToKey[i]);
-        }
-    }
-    for (int i = 8; i < 16; i++) {
+    for (int i = 0; i < 12; i++) {
         if (!(bits & (1 << i))) {
             keys.push_back(bitToKey[i]);
         }
@@ -36,7 +31,7 @@ vector<string> getKeysFromBits(unsigned short bits) {
 };
 
 int main() {
-    unsigned short input = 0b1111111100100111;  // 入力後の状態 (例: 0xff27)
+    unsigned short input = 0x27ff;  // 入力後の状態 (例: 0xff27)
 
     vector<string> keys = getKeysFromBits(input);
 
@@ -48,7 +43,7 @@ int main() {
     cout << endl;
 
     return 0;
-}
+} // 出力：Y
 
 
 /*
