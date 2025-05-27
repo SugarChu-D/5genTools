@@ -22,5 +22,6 @@ constexpr uint32_t FINAL_RIGHT_SHIFT = 27;
 // 関数プロトタイプ
 uint32_t MT_1(uint64_t seed1, uint32_t p);
 uint32_t MT_0(uint64_t seed0, uint32_t p);
+uint32_t MT_32(uint32_t seed, uint32_t p);
 
 #endif // MT_1_H
