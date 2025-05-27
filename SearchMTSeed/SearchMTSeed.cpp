@@ -22,6 +22,15 @@ int main() {
 
     #pragma omp parallel for schedule(dynamic, 10000)
     for (uint64_t seed = 0; seed <= 0xFFFFFFFF; ++seed) {
+        // 1%ごとに進捗を表示
+        if (seed % 0x4400000 == 0) {
+            #pragma omp critical
+            {
+                double progress = (static_cast<double>(seed) / 0xFFFFFFFF) * 100;
+                cout << "\r進捗: " << fixed << setprecision(2) 
+                     << progress << "% (0x" << hex << seed << ")" << flush;
+            }
+        }
         uint32_t result = MT_32(static_cast<uint32_t>(seed), 0);
         if (result == target) {
             lock_guard<mutex> lock(found_mutex);
