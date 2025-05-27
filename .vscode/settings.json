@@ -80,7 +80,9 @@
         "string_view": "cpp",
         "numbers": "cpp",
         "text_encoding": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "condition_variable": "cpp",
+        "semaphore": "cpp"
     },
     // "args": ["-std=c++20"]
     "args": ["-std=c++23"] // Uncomment this line to use C++23 standard
