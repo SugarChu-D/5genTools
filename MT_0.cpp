@@ -11,7 +11,7 @@ constexpr uint32_t UPPER_MASK = 0x80000000;
 constexpr uint32_t LOWER_MASK = 0x7fffffff;
 constexpr uint32_t MATRIX_A = 0x9908B0DF;
 
-uint32_t MT(uint64_t seed0, uint32_t p) {
+uint32_t MT_1(uint64_t seed1, uint32_t p) {
     uint16_t length = p + 6 + M;
     if (length > N) {
         throw invalid_argument("Length must be between 0 and N (624).");
@@ -22,7 +22,7 @@ uint32_t MT(uint64_t seed0, uint32_t p) {
 
     // メモリアロケーションを1回だけに
     vector<uint32_t> table(length);
-    table[0] = static_cast<uint32_t>(seed0 >> 32);
+    table[0] = static_cast<uint32_t>(seed1 >> 32);
 
     // 初期化ループの最適化
     uint32_t prev = table[0];
@@ -52,10 +52,10 @@ uint32_t MT(uint64_t seed0, uint32_t p) {
 }
 
 int main() {
-    uint64_t seed1 = 0xADFA217848890B0D; // 例: 任意の64ビットシード
-    cout << hex << MT(seed1, 0) << endl; // 例: pを0に設定して関数を呼び出す この時の初期seedはプラスルツールのseed1に該当
-    uint64_t seed2 = 0xDFA564DA62B08D7A; // 例: 任意の64ビットシード
-    cout << hex << MT(seed2, 10) << endl; // 例: pを0に設定して関数を呼び出す この時の初期seedはプラスルツールのseed2に該当
+    uint64_t seedi = 0xADFA217848890B0D; // 例: 任意の64ビットシード
+    cout << hex << MT_1(seedi, 0) << endl; // 例: pを0に設定して関数を呼び出す この時の初期seedはプラスルツールのseed1に該当
+    uint64_t seedii = 0xDFA564DA62B08D7A; // 例: 任意の64ビットシード
+    cout << hex << MT_1(seedii, 10) << endl; // 例: pを0に設定して関数を呼び出す この時の初期seedはプラスルツールのseed2に該当
 
     return 0;
 }
