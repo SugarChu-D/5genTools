@@ -46,7 +46,7 @@ uint32_t MT_1(uint64_t seed1, uint32_t p) {
 }
 
 uint32_t MT_0(uint64_t seed0, uint32_t p) {
-    uint64_t seed1 = seed0 * 0x5D588B656C078965UL + 0x269EC3UL; // 64ビットシードを使用してseed1を生成
+    uint64_t seed1 = seed0 * 0x5D588B656C078965UL + 0x269EC3UL; // LCGでseed1を生成
     // cout << hex << seed1 << endl; // seed1の値を表示
     return MT_1(seed1, p);
 }
