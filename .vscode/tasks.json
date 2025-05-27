@@ -3,10 +3,11 @@
         {
             "type": "cppbuild",
             "label": "C/C++: g++.exe アクティブなファイルのビルド",
-            "command": "C:\\Program Files\\mingw64\\bin\\g++.exe",
+            "command": "C:\\mingw64\\bin\\g++.exe",
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
+                "-fopenmp",
                 "${file}",
                 "-o",
                 "${fileDirname}\\${fileBasenameNoExtension}.exe"
