@@ -1,52 +1,55 @@
 #include <iostream>
 #include <cstdint>
 #include <vector>
+#include <array>
 
 using namespace std;
 
 constexpr int N = 624;
 constexpr int M = 397;
-// Mersenne Twisterの初期化関数
+constexpr uint32_t UPPER_MASK = 0x80000000;
+constexpr uint32_t LOWER_MASK = 0x7fffffff;
+constexpr uint32_t MATRIX_A = 0x9908B0DF;
 
 uint32_t MT(uint64_t seed0, uint32_t p) {
-    uint16_t length = p + 6 + M; // p + 6 + Mの長さを計算
-    if (length < 0 || length > N) {
+    uint16_t length = p + 6 + M;
+    if (length > N) {
         throw invalid_argument("Length must be between 0 and N (624).");
     }
-    if (p < 0 || p >= N) {
+    if (p >= N) {
         throw invalid_argument("p must be between 0 and N (624).");
     }
-    vector<uint32_t> table(length); // 動的配列を使用してMTを初期化
-    table.at(0) = static_cast<uint32_t>(seed0 >> 32); // seed0の上位32ビットをMT[0]に設定
 
+    // メモリアロケーションを1回だけに
+    vector<uint32_t> table(length);
+    table[0] = static_cast<uint32_t>(seed0 >> 32);
+
+    // 初期化ループの最適化
+    uint32_t prev = table[0];
     for(uint32_t i = 1; i < length; ++i) {
-        table[i] = (1812433253 * (table[i - 1] ^ (table[i - 1] >> 30)) + i);
+        prev = table[i] = 1812433253U * (prev ^ (prev >> 30)) + i;
     }
-    // ここで、tableの要素をMersenne Twisterのアルゴリズムに従って初期化
 
     uint32_t ivsCode = 0;
-
-    for(int i=p; i<p+6; ++i) {
-        uint32_t x = (table[i] & 0x80000000) + (table[(i+1)] & 0x7fffffff);
-        uint32_t xA = x >> 1;
-        if (x & 1) xA ^= 0x9908B0DF; // 0x9908B0DFはMersenne Twisterのマスク
+    
+    // メインループの最適化
+    for(int i = p, shift = 0; i < p + 6; ++i, shift += 5) {
+        uint32_t x = (table[i] & UPPER_MASK) | (table[i + 1] & LOWER_MASK);
+        uint32_t xA = (x >> 1) ^ ((x & 1) * MATRIX_A);
         uint32_t val = table[i + M] ^ xA;
 
-        val = val ^ (val >> 11);
-        val = val ^ (val << 7 & 0x9D2C5680);
-        val = val ^ (val << 15 & 0xEFC60000);
-        val = val ^ (val >> 18);
-
+        // テンパリング処理の最適化
+        val ^= val >> 11;
+        val ^= (val << 7) & 0x9D2C5680;
+        val ^= (val << 15) & 0xEFC60000;
+        val ^= val >> 18;
         val >>= 27;
-        cout<< val << " ";
 
-        ivsCode |= val << (5 *(i-p));
+        ivsCode |= val << shift;
     }
-    return ivsCode; // 必要に応じて適切な戻り値を設定
+
+    return ivsCode;
 }
-
-
-
 
 int main() {
     uint64_t seed1 = 0xADFA217848890B0D; // 例: 任意の64ビットシード
