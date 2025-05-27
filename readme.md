@@ -13,6 +13,8 @@ https://github.com/yatsuna827/5genInitialSeedSearch/tree/main
 
 [TTSさんのRTA用bw2-seed-filter](https://github.com/TTS4life/bw2-seed-filter)  
 
-[Lincolnさんのパッケージ](https://github.com/Lincoln-LM/numba_pokemon_prngs) 
+[Lincolnさんのパッケージ](https://github.com/Lincoln-LM/numba_pokemon_prngs)
+
+[乱数調整概説](https://www.slideshare.net/slideshow/ss-238073753/238073753)
 
 ## [リンク集](https://scrapbox.io/sugarchud/SugarChuD)
