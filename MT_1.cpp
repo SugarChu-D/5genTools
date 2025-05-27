@@ -5,12 +5,6 @@
 
 using namespace std;
 
-constexpr int N = 624;
-constexpr int M = 397;
-constexpr uint32_t UPPER_MASK = 0x80000000;
-constexpr uint32_t LOWER_MASK = 0x7fffffff;
-constexpr uint32_t MATRIX_A = 0x9908B0DF;
-
 uint32_t MT_1(uint64_t seed1, uint32_t p) {
     uint16_t length = p + 6 + M;
     if (length > N) {
