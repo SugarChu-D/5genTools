@@ -12,17 +12,34 @@
 
 using namespace std;
 
-vector<uint32_t> get_targets_from_file(const string& filename = "ivs.txt") {
-    ifstream config(filename);
-    if (!config) {
+struct SearchConfig {
+    uint32_t p_value;
+    vector<uint32_t> targets;
+};
+
+SearchConfig get_targets_from_file(const string& filename = "ivs.txt") {
+    SearchConfig config;
+    ifstream file(filename);
+    if (!file) {
         throw runtime_error("設定ファイルが開けません: " + filename);
     }
 
-    vector<uint32_t> targets;
-    string line;
-    int line_number = 0;
+    // 最初の行からp値を読み込む
+    string first_line;
+    if (!getline(file, first_line)) {
+        throw runtime_error("設定ファイルが空です");
+    }
     
-    while (getline(config, line)) {
+    stringstream p_ss(first_line);
+    if (!(p_ss >> config.p_value) || config.p_value > 16) {
+        throw runtime_error("無効なp値です（0-16の整数を入力してください）: " + first_line);
+    }
+
+    // 残りの行からtargetを読み込む
+    string line;
+    int line_number = 1;  // p値の行を考慮
+    
+    while (getline(file, line)) {
         line_number++;
         stringstream ss(line);
         vector<int> values;
@@ -48,18 +65,17 @@ vector<uint32_t> get_targets_from_file(const string& filename = "ivs.txt") {
         for (int i = 0; i < 6; i++) {
             target |= (values[i] & 0x1F) << (5 * (5 - i));
         }
-        targets.push_back(target);
+        config.targets.push_back(target);
     }
 
-    if (targets.empty()) {
+    if (config.targets.empty()) {
         throw runtime_error("設定ファイルに有効な値が見つかりません");
     }
 
-    return targets;
+    return config;
 }
 
 int main() {
-    vector<uint32_t> targets;
     vector<uint32_t> found_seeds;
     mutex found_mutex;
 
@@ -70,12 +86,60 @@ int main() {
     }
 
     try {
-        targets = get_targets_from_file();
+        auto config = get_targets_from_file("ivs.txt");
+        cout << "個体値列消費: " << config.p_value << endl;
         cout << "読み込まれたtarget一覧:" << endl;
+        result_file << "個体値列消費: " << config.p_value << endl;
         result_file << "読み込まれたtarget一覧:" << endl;
-        for (size_t i = 0; i < targets.size(); i++) {
-            cout << "[" << i << "] 0x" << hex << targets[i] << endl;
-            result_file << "[" << i << "] 0x" << hex << targets[i] << endl;
+        
+        for (size_t i = 0; i < config.targets.size(); i++) {
+            cout << "[" << i << "] 0x" << hex << config.targets[i] << endl;
+            result_file << "[" << i << "] 0x" << hex << config.targets[i] << endl;
+        }
+
+        int num_threads = omp_get_max_threads();
+        cout << "OpenMP スレッド数: " << num_threads << endl;
+        
+        auto start_time = chrono::high_resolution_clock::now();
+
+        // 一回の探索で全targetをチェック
+        #pragma omp parallel for schedule(dynamic, 10000)
+        for (uint64_t seed = 0; seed <= 0xFFFFFFFF; ++seed) {
+            // 進捗表示
+            if (seed % 0x4400000 == 0) {
+                #pragma omp critical
+                {
+                    double progress = (static_cast<double>(seed) / 0xFFFFFFFF) * 100;
+                    cout << "\r進捗: " << fixed << setprecision(2) 
+                         << progress << "% (0x" << hex << seed << ")" << flush;
+                }
+            }
+
+            // MT_32呼び出し時にconfig.p_valueを使用
+            uint32_t result = MT_32(static_cast<uint32_t>(seed), config.p_value);
+            
+            // 全targetと比較
+            for (const auto& target : config.targets) {
+                if (result == target) {
+                    lock_guard<mutex> lock(found_mutex);
+                    found_seeds.push_back(static_cast<uint32_t>(seed));
+                    // targetとseedの対応を記録
+                    cout << "\nFound target 0x" << hex << target 
+                         << " with seed 0x" << seed << endl;
+                    result_file << "target 0x" << hex << target 
+                              << " seed 0x" << seed << endl;
+                }
+            }
+        }
+
+        auto end_time = chrono::high_resolution_clock::now();
+        auto duration = chrono::duration_cast<chrono::milliseconds>(end_time - start_time).count();
+
+        cout << "\n計算時間: 0x" << hex << duration << " ms" << endl;
+
+        if (found_seeds.empty()) {
+            cout << "見つかりませんでした" << endl;
+            result_file << "見つかりませんでした" << endl;
         }
     }
     catch (const exception& e) {
@@ -83,50 +147,5 @@ int main() {
         return 1;
     }
 
-    int num_threads = omp_get_max_threads();
-    cout << "OpenMP スレッド数: " << num_threads << endl;
-    
-    auto start_time = chrono::high_resolution_clock::now();
-
-    // 一回の探索で全targetをチェック
-    #pragma omp parallel for schedule(dynamic, 10000)
-    for (uint64_t seed = 0; seed <= 0xFFFFFFFF; ++seed) {
-        // 進捗表示
-        if (seed % 0x4400000 == 0) {
-            #pragma omp critical
-            {
-                double progress = (static_cast<double>(seed) / 0xFFFFFFFF) * 100;
-                cout << "\r進捗: " << fixed << setprecision(2) 
-                     << progress << "% (0x" << hex << seed << ")" << flush;
-            }
-        }
-
-        uint32_t result = MT_32(static_cast<uint32_t>(seed), 0);
-        
-        // 全targetと比較
-        for (const auto& target : targets) {
-            if (result == target) {
-                lock_guard<mutex> lock(found_mutex);
-                found_seeds.push_back(static_cast<uint32_t>(seed));
-                // targetとseedの対応を記録
-                cout << "\nFound target 0x" << hex << target 
-                     << " with seed 0x" << seed << endl;
-                result_file << "target 0x" << hex << target 
-                          << " seed 0x" << seed << endl;
-            }
-        }
-    }
-
-    auto end_time = chrono::high_resolution_clock::now();
-    auto duration = chrono::duration_cast<chrono::milliseconds>(end_time - start_time).count();
-
-    cout << "\n計算時間: 0x" << hex << duration << " ms" << endl;
-
-    if (found_seeds.empty()) {
-        cout << "見つかりませんでした" << endl;
-        result_file << "見つかりませんでした" << endl;
-    }
-
-    result_file.close();
     return 0;
 }
