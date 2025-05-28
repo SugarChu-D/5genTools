@@ -90,12 +90,12 @@ int main() {
 
     // 一回の探索で全targetをチェック
     #pragma omp parallel for schedule(dynamic, 10000)
-    for (uint64_t seed = 0; seed <= 0x0FFFFFFF; ++seed) {
+    for (uint64_t seed = 0; seed <= 0xFFFFFFFF; ++seed) {
         // 進捗表示
         if (seed % 0x4400000 == 0) {
             #pragma omp critical
             {
-                double progress = (static_cast<double>(seed) / 0x0FFFFFFF) * 100;
+                double progress = (static_cast<double>(seed) / 0xFFFFFFFF) * 100;
                 cout << "\r進捗: " << fixed << setprecision(2) 
                      << progress << "% (0x" << hex << seed << ")" << flush;
             }
