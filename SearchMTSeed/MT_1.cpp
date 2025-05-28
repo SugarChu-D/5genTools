@@ -20,7 +20,7 @@ uint32_t MT_1(uint64_t seed1, uint32_t p) {
     uint32_t ivsCode = 0;
 
     // メインループ
-    for(int i = p, shift = 0; i < p + 6; ++i, shift += 5) {
+    for(int i = p, shift = 25; i < p + 6; ++i, shift -= 5) {  // shift を 25 から開始して 5 ずつ減少
         uint32_t x = (table[i] & UPPER_MASK) | (table[i + 1] & LOWER_MASK);
         uint32_t xA = (x >> 1) ^ ((x & 1) * MATRIX_A);
         uint32_t val = table[i + M] ^ xA;
@@ -32,7 +32,7 @@ uint32_t MT_1(uint64_t seed1, uint32_t p) {
         val ^= val >> 18;
         val >>= 27;
 
-        ivsCode |= val << shift;
+        ivsCode |= val << shift;  // 値を逆順で格納
     }
 
     return ivsCode;
@@ -60,7 +60,7 @@ uint32_t MT_32(uint32_t seed, uint32_t p) {
     uint32_t ivsCode = 0;
 
     // メインループ
-    for(int i = p, shift = 0; i < p + 6; ++i, shift += 5) {
+    for(int i = p, shift = 25; i < p + 6; ++i, shift -= 5) {  // shift を 25 から開始して 5 ずつ減少
         uint32_t x = (table[i] & UPPER_MASK) | (table[i + 1] & LOWER_MASK);
         uint32_t xA = (x >> 1) ^ ((x & 1) * MATRIX_A);
         uint32_t val = table[i + M] ^ xA;
@@ -72,15 +72,15 @@ uint32_t MT_32(uint32_t seed, uint32_t p) {
         val ^= val >> 18;
         val >>= 27;
 
-        ivsCode |= val << shift;
+        ivsCode |= val << shift;  // 値を逆順で格納
     }
 
     return ivsCode;
 }
 
 // int main() {
-//     uint32_t seed = 0x12345678;
-//     uint32_t p = 0;
+//     uint32_t seed = 0x419534ab;
+//     uint32_t p = 10;
 
 //     auto start = std::chrono::high_resolution_clock::now();
 //     uint32_t result = MT_32(seed, p);
