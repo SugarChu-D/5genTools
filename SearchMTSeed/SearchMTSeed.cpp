@@ -31,8 +31,8 @@ SearchConfig get_targets_from_file(const string& filename = "ivs.txt") {
     }
     
     stringstream p_ss(first_line);
-    if (!(p_ss >> config.p_value) || config.p_value > 16) {
-        throw runtime_error("無効なp値です（0-16の整数を入力してください）: " + first_line);
+    if (!(p_ss >> config.p_value) || config.p_value > 20) {
+        throw runtime_error("無効なp値です（0-20の整数を入力してください）: " + first_line);
     }
 
     // 残りの行からtargetを読み込む
@@ -76,16 +76,16 @@ SearchConfig get_targets_from_file(const string& filename = "ivs.txt") {
 }
 
 int main() {
-    vector<uint32_t> found_seeds;
-    mutex found_mutex;
-
-    ofstream result_file("result.txt");
-    if (!result_file) {
-        cerr << "結果ファイルを開けません" << endl;
-        return 1;
-    }
-
     try {
+        vector<uint32_t> found_seeds;
+        mutex found_mutex;
+
+        ofstream result_file("result.txt");
+        if (!result_file) {
+            cerr << "結果ファイルを開けません" << endl;
+            return 1;
+        }
+
         auto config = get_targets_from_file("ivs.txt");
         cout << "個体値列消費: " << config.p_value << endl;
         cout << "読み込まれたtarget一覧:" << endl;
@@ -144,6 +144,10 @@ int main() {
     }
     catch (const exception& e) {
         cerr << "エラー: " << e.what() << endl;
+        return 1;
+    }
+    catch (...) {
+        cerr << "unknown error (not std::exception)" << endl;
         return 1;
     }
 

@@ -6,7 +6,7 @@
 using namespace std;
 
 uint32_t MT_1(uint64_t seed1, uint32_t p) {
-    constexpr uint32_t MAX_P = 16;
+    constexpr uint32_t MAX_P = 20; // ← ここを16から20に変更
     constexpr uint32_t TABLE_SIZE = MAX_P + 6 + M;
     uint32_t table[TABLE_SIZE];
     table[0] = static_cast<uint32_t>(seed1 >> 32);
@@ -45,8 +45,7 @@ uint32_t MT_0(uint64_t seed0, uint32_t p) {
 }
 
 uint32_t MT_32(uint32_t seed, uint32_t p) {    
-    // pの最大値が16なら、tableのサイズは最大で16+6+397=419
-    constexpr uint32_t MAX_P = 16;
+    constexpr uint32_t MAX_P = 20; // ← ここも16から20に変更
     constexpr uint32_t TABLE_SIZE = MAX_P + 6 + M;
     uint32_t table[TABLE_SIZE];
     table[0] = seed;
