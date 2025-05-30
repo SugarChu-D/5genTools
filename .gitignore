@@ -1,4 +1,5 @@
 *.exe
 ivs.txt
 result.txt
+ivseed.txt
 *.log
