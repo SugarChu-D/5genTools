@@ -1,56 +1,56 @@
+#include "const.h"
 #include <iostream>
-#include <string>
-#include <stdexcept>
-#include <map>
-#include <array>
 #include <iomanip>
-#include <cstdint>
+#include <stdexcept>
 
 using namespace std;
 
-class Version {
-    string Label; // バージョン名
-    array<uint32_t, 5> nazoArray; // nazo値を5つの整数として保持
-    uint32_t VCount; // VCountの値
+// コンストラクタの実装
+Version::Version(string label) : Label(label) {
+    initializeValues();
+}
 
-    // ラベルに基づいて値を設定するヘルパー関数
-    void initializeValues() {
-        static const map<string, pair<array<uint32_t, 5>, uint32_t>> versionData = {  // intからuint32_tに変更
-            {"JPB1", {{0x02215F10, 0x0221600C, 0x0221600C, 0x02216058, 0x02216058}, 0x60}},
-            {"JPW1", {{0x02215F30, 0x0226020C, 0x0226020C, 0x02216078, 0x02216078}, 0x5F}},
-            {"JPB2", {{0x0209A8DC, 0x02039AC9, 0x021FF9B0, 0x021FFA04, 0x021FFA04}, 0x82}},
-            {"JPW2", {{0x0209A8FC, 0x02039AF5, 0x021FF9D0, 0x021FFA24, 0x021FFA24}, 0x82}}
-        };
+// initializeValuesの実装
+void Version::initializeValues() {
+    static const map<string, pair<array<uint32_t, 5>, uint32_t>> versionData = {
+        {"JPB1", {{0x02215F10, 0x0221600C, 0x0221600C, 0x02216058, 0x02216058}, 0x60}},
+        {"JPW1", {{0x02215F30, 0x0226020C, 0x0226020C, 0x02216078, 0x02216078}, 0x5F}},
+        {"JPB2", {{0x0209A8DC, 0x02039AC9, 0x021FF9B0, 0x021FFA04, 0x021FFA04}, 0x82}},
+        {"JPW2", {{0x0209A8FC, 0x02039AF5, 0x021FF9D0, 0x021FFA24, 0x021FFA24}, 0x82}}
+    };
 
-        auto it = versionData.find(Label);
-        if (it != versionData.end()) {
-            nazoArray = it->second.first;
-            VCount = it->second.second;
-        } else {
-            throw invalid_argument("Unknown label: " + Label);
-        }
+    auto it = versionData.find(Label);
+    if (it != versionData.end()) {
+        nazoArray = it->second.first;
+        VCount = it->second.second;
+    } else {
+        throw invalid_argument("Unknown version label: " + Label);
     }
+}
 
-public:
-    // コンストラクタ
-    Version(string label) : Label(label) {
-        initializeValues();
+// ゲッター関数の実装
+string Version::getLabel() const {
+    return Label;
+}
+
+array<uint32_t, 5> Version::getNazoArray() const {
+    return nazoArray;
+}
+
+uint32_t Version::getVCount() const {
+    return VCount;
+}
+
+// デバッグ用出力関数の実装
+void Version::print() const {
+    cout << "Version: " << Label 
+         << ", VCount: 0x" << hex << VCount 
+         << ", nazoArray: ";
+    for (const auto& val : nazoArray) {
+        cout << "0x" << setfill('0') << setw(8) << hex << val << " ";
     }
-
-    // ゲッター
-    string getLabel() const { return Label; }
-    array<uint32_t, 5> getNazoArray() const { return nazoArray; }
-    uint32_t getVCount() const { return VCount; }  // 戻り値の型をuint32_tに変更
-
-    // デバッグ用の出力
-    void print() const {
-        cout << "Version: " << Label << ", VCount: " << hex << VCount << ", nazoArray: ";
-        for (const auto& val : nazoArray) {
-            cout << hex << val << " ";
-        }
-        cout << endl;
-    }
-};
+    cout << endl;
+}
 
 // int main() {
 //     const array<string, 4> labels = {"JPB1", "JPW1", "JPB2", "JPW2"};

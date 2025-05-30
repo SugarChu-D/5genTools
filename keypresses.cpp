@@ -30,20 +30,20 @@ vector<string> getKeysFromBits(unsigned short bits) {
     return keys;
 };
 
-int main() {
-    unsigned short input = 0x27ff;  // 入力後の状態 (例: 0xff27)
+// int main() {
+//     unsigned short input = 0x27ff;  // 入力後の状態 (例: 0xff27)
 
-    vector<string> keys = getKeysFromBits(input);
+//     vector<string> keys = getKeysFromBits(input);
 
-    cout << "Input bits: " << bitset<16>(input) << endl;
-    cout << "Keys: ";
-    for (const string& key : keys) {
-        cout << key << " ";
-    }
-    cout << endl;
+//     cout << "Input bits: " << bitset<16>(input) << endl;
+//     cout << "Keys: ";
+//     for (const string& key : keys) {
+//         cout << key << " ";
+//     }
+//     cout << endl;
 
-    return 0;
-} // 出力：Y
+//     return 0;
+// } // 出力：Y
 
 
 /*

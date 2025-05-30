@@ -32,8 +32,6 @@ bool SHA1_5(SHA1_DATA* sha1d, const Version ver, const int16_t Timer0, const boo
             const tm& timeInfo);
 bool SHA1_5(SHA1_DATA* sha1d, const Version& ver);
 uint64_t SHA1_Array(SHA1_DATA* sha1d, const array<uint32_t, 16>& data);
-uint64_t initialSEED(SHA1_DATA* sha1d, const Version& ver, const uint16_t Timer0, const bool isDSLite, const uint64_t MAC,
-                const GameDate& gameDate);
 
 // 定数取得関数
 inline SHA_INT_TYPE SHA1_K(SHA_INT_TYPE t) {
@@ -146,11 +144,11 @@ void SHA1_HashBlock(array<SHA_INT_TYPE, 5>& hashValues, const unsigned char* dat
 //     return true;
 // }
 
-uint64_t initialSEED(SHA1_DATA* sha1d, const Version& ver, const uint16_t Timer0, const bool isDSLite, const uint64_t MAC, const GameDate& gameDate, const uint16_t keypress) {
+uint64_t initialSEED(SHA1_DATA* sha1d, const InitialSeedParams& params, const GameDate& gameDate, const uint16_t keypress) {
     if (!sha1d) return 0;
 
     // nazo arrayを取得
-    const auto& nazoArray = ver.getNazoArray();
+    const auto& nazoArray = params.ver.getNazoArray();
 
     // 16個の32ビット値を格納するデータ配列
     array<uint32_t, 16> data = {};
@@ -161,15 +159,15 @@ uint64_t initialSEED(SHA1_DATA* sha1d, const Version& ver, const uint16_t Timer0
     }
 
     // VCountとTimer0を結合してdata[5]に格納
-    uint32_t VCount = ver.getVCount();
-    data[5] = SHA_Reverse((VCount << 16) | Timer0);
+    uint32_t VCount = params.ver.getVCount();
+    data[5] = SHA_Reverse((VCount << 16) | params.Timer0);
 
     // MACの下位16ビットをdata[6]に格納
-    data[6] = (MAC & 0xFFFF);
+    data[6] = (params.MAC & 0xFFFF);
 
     // MACの真ん中32ビットとGxFrameXorFrameのXOR結果をdata[7]に格納
-    uint32_t middleMAC = (MAC >> 16) & 0xFFFFFFFF;
-    uint32_t GxFrameXorFrame = isDSLite ? 0x6000006 : 0x8000006;
+    uint32_t middleMAC = (params.MAC >> 16) & 0xFFFFFFFF;
+    uint32_t GxFrameXorFrame = params.isDSLite ? 0x6000006 : 0x8000006;
     data[7] = middleMAC ^ GxFrameXorFrame;
 
     // 日付・曜日をdata[8]に格納
@@ -207,44 +205,46 @@ uint64_t SHA1_Array(SHA1_DATA* sha1d, const array<uint32_t, 16>& data) {
 }
 
 // テスト用メイン関数
-int main() {
-    SHA1_DATA sha1d;
+// int main() {
+//     SHA1_DATA sha1d;
 
-    try {
-        // string label;
-        // cout << "Enter version label (e.g., JPB1, JPW1, JPB2, JPW2): ";
-        // cin >> label;
+//     try {
+//         // 固定パラメータの設定
+//         Version version("JPB1");
+//         uint16_t Timer0 = 0x0C7A;
+//         bool isDSLite = true;
+//         uint64_t MAC = 0x0009BF6D93CE;
+//         GameDate gameDate(60, 3, 23, 13, 1, 18);
 
-        // Versionオブジェクトを作成
-        Version version("JPB1"); // 例: "JPB1"を指定
-		// Version version(label); // ユーザーからの入力を使用する場合
+//         // パラメータの構造体を作成
+//         InitialSeedParams params = {
+//             version,
+//             Timer0,
+//             isDSLite,
+//             MAC
+//         };
 
-        uint16_t Timer0;
-        cout << "Enter Timer0 value (hex, e.g., 0x0C7A): ";
-        cin >> hex >> Timer0;
+//         cout << "パラメータ設定:" << endl;
+//         cout << "Version: JPB1" << endl;
+//         cout << "Timer0: 0x" << hex << Timer0 << endl;
+//         cout << "DS Lite: " << (isDSLite ? "Yes" : "No") << endl;
+//         cout << "MAC: 0x" << hex << MAC << endl;
+//         cout << "Date/Time: ";
+//         gameDate.print();
+//         cout << endl;
 
-        bool isDSLite;
-        cout << "Is it a DS Lite? (1 for true, 0 for false): ";
-        cin >> isDSLite;
+//         // テスト用の探索（0x2ff0から0x3000までの範囲）
+//         cout << "Keypress探索開始..." << endl;
+//         for (uint16_t keypress = 0x2ff0; keypress <= 0x3000; ++keypress) {
+//             uint64_t seed = initialSEED(&sha1d, params, gameDate, keypress);
+//             cout << "Keypress: 0x" << hex << setw(4) << setfill('0') << keypress 
+//                  << " -> Seed: 0x" << hex << setw(16) << setfill('0') << seed << endl;
+//         }
 
-        uint64_t MAC;
-        // cout << "Enter MAC address (hex, e.g., 0x0009BF6D93CE): ";
-        // cin >> hex >> MAC;
-		MAC = 0x0009BF6D93CE; // 例: 0x0009BF6D93CEを指定
+//     } catch (const exception& e) {
+//         cerr << "エラー: " << e.what() << endl;
+//         return 1;
+//     }
 
-        // GameDateオブジェクトを作成
-		GameDate gameDate(60, 3, 23, 13, 1, 18); // 2060年2月23日13時01分18秒
-
-        // 日付と時刻を出力
-        cout << "You entered date and time: ";
-        gameDate.print();
-
-        // initialSEED関数を呼び出してハッシュを計算
-        cout << "Iseed: " << hex << initialSEED(&sha1d, version, Timer0, isDSLite, MAC, gameDate,0x2fff) << endl;
-
-    } catch (const exception& e) {
-        cout << "Error: " << e.what() << endl;
-    }
-
-    return 0;
-}
+//     return 0;
+// }
