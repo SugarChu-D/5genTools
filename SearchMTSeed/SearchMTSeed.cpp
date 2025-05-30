@@ -79,18 +79,21 @@ int main() {
     try {
         vector<uint32_t> found_seeds;
         mutex found_mutex;
+        atomic<bool> should_exit{false};  // 終了フラグを追加
 
+        // 既存のresult.txtに加えて、ivseed.txt用のファイルストリームを追加
         ofstream result_file("result.txt");
-        if (!result_file) {
+        ofstream seed_file("ivseed.txt");
+        if (!result_file || !seed_file) {
             cerr << "結果ファイルを開けません" << endl;
             return 1;
         }
 
         auto config = get_targets_from_file("ivs.txt");
-        cout << "個体値列消費: " << config.p_value << endl;
-        cout << "読み込まれたtarget一覧:" << endl;
-        result_file << "個体値列消費: " << config.p_value << endl;
-        result_file << "読み込まれたtarget一覧:" << endl;
+        cout << "ivRNG: " << config.p_value << endl;
+        cout << "targeted:list" << endl;
+        result_file << "ivRNG: " << config.p_value << endl;
+        result_file << "targeted list:" << endl;
         
         for (size_t i = 0; i < config.targets.size(); i++) {
             cout << "[" << i << "] 0x" << hex << config.targets[i] << endl;
@@ -98,19 +101,24 @@ int main() {
         }
 
         int num_threads = omp_get_max_threads();
-        cout << "OpenMP スレッド数: " << num_threads << endl;
+        cout << "OpenMP thread: " << num_threads << endl;
         
         auto start_time = chrono::high_resolution_clock::now();
 
         // 一回の探索で全targetをチェック
         #pragma omp parallel for schedule(dynamic, 10000)
         for (uint64_t seed = 0; seed <= 0xFFFFFFFF; ++seed) {
+            // 終了フラグをチェック
+            if (should_exit) {
+                continue;
+            }
+
             // 進捗表示
             if (seed % 0x4400000 == 0) {
                 #pragma omp critical
                 {
                     double progress = (static_cast<double>(seed) / 0xFFFFFFFF) * 100;
-                    cout << "\r進捗: " << fixed << setprecision(2) 
+                    cout << "\r progress: " << fixed << setprecision(2) 
                          << progress << "% (0x" << hex << seed << ")" << flush;
                 }
             }
@@ -124,22 +132,42 @@ int main() {
                     lock_guard<mutex> lock(found_mutex);
                     found_seeds.push_back(static_cast<uint32_t>(seed));
                     // targetとseedの対応を記録
-                    cout << "\nFound target 0x" << hex << target 
-                         << " with seed 0x" << seed << endl;
                     result_file << "target 0x" << hex << target 
-                              << " seed 0x" << seed << endl;
+                                << " seed 0x" << seed << endl;
+                    // シード値のみをivseed.txtに出力
+                    seed_file << hex << seed << endl;
+
+                    // シード数が500を超えたらフラグを設定
+                    if (found_seeds.size() >= 500) {
+                        cout << "\ntoo many seeds. I recommend using 5gensearch directly" << endl;
+                        result_file << "too many seeds. I recommend using 5gensearch directly" << endl;
+                        seed_file << "too many seeds. I recommend using 5gensearch directly" << endl;
+                        should_exit = true;
+                        break;
+                    }
                 }
             }
         }
 
         auto end_time = chrono::high_resolution_clock::now();
-        auto duration = chrono::duration_cast<chrono::milliseconds>(end_time - start_time).count();
+        auto duration = chrono::duration_cast<chrono::seconds>(end_time - start_time).count();
 
-        cout << "\n計算時間: 0x" << hex << duration << " ms" << endl;
+        cout << "\nExecution time: " << duration/60 << "m" << duration%60 << " s" << endl;
+        result_file << "Execution time: " << duration/60 << "m" << duration%60 << " s" << endl;
 
         if (found_seeds.empty()) {
-            cout << "見つかりませんでした" << endl;
-            result_file << "見つかりませんでした" << endl;
+            cout << "404 not found" << endl;
+            result_file << "404 not found" << endl;
+            seed_file << "404 not found" << endl;
+        }
+
+        // ファイルストリームを閉じる
+        result_file.close();
+        seed_file.close();
+
+        // 500個以上見つかった場合は早期リターン
+        if (should_exit) {
+            return 0;
         }
     }
     catch (const exception& e) {
