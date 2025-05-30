@@ -153,7 +153,7 @@ int main() {
         auto duration = chrono::duration_cast<chrono::seconds>(end_time - start_time).count();
 
         cout << "\nExecution time: " << duration/60 << "m" << duration%60 << " s" << endl;
-        result_file << "Execution time: " << duration/60 << "m" << duration%60 << " s" << endl;
+        result_file << "Execution time: 0x" << duration/60 << "m 0x" << duration%60 << "s" << endl;
 
         if (found_seeds.empty()) {
             cout << "404 not found" << endl;
