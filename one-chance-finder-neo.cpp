@@ -190,27 +190,27 @@ int main() {
     auto start_time = chrono::high_resolution_clock::now();
 
     // 全探索の総数を計算（100年 × 0x1000個のkeypress）
-    uint64_t total_iterations = 100ULL * 24 * 3600 * 0x1000;
+    uint64_t total_iterations = 100ULL * 24 * 60 * 0x1000;
 
     #pragma omp parallel
     {
         SHA1_DATA sha1d = {};
-        #pragma omp for schedule(dynamic, 1000) collapse(2)
+        #pragma omp for schedule(dynamic, 1000) collapse(5)
         for (int year = 0; year < 100; ++year) {
-        for (int hour = 0; hour < 25; ++hour) {
+        for (int hour = 0; hour < 24; ++hour) {
         for (int minute = 0; minute < 60; ++minute) {
-        for (int second = 0; second < 60; ++second) {
+        for (int second = 5; second < 6; ++second) {
             for (uint16_t keypress = 0x2000; keypress <= 0x2fff; ++keypress) {
                 if (should_exit) continue;
 
-                // 4月30日で固定、年のみ変更
-                GameDate gameDate(year, 8, 30, hour, minute, second);
+                // 8月30日で固定、年のみ変更
+                GameDate gameDate(year, 8, 31, hour, minute, second);
 
                 // 進捗表示（年とkeypressの組み合わせから計算）
-                if ((year * 0x1000 + (keypress - 0x2000)) % 0x1000 == 0) {
+                if ((year * 0x1000 * 24 * 60 + (keypress - 0x2000)) % 0x100000 == 0) {
                     #pragma omp critical
                     {
-                        double progress = (static_cast<double>(year * 0x1000 + (keypress - 0x2000)) / total_iterations) * 100;
+                        double progress = (static_cast<double>(year * 0x1000 * 24 * 60 + (keypress - 0x2000)) / total_iterations) * 100;
                         cout << "\r進捗: " << fixed << setprecision(2) 
                              << progress << "% (Year: " << dec << 2000 + year 
                              << ", Keypress: 0x" << hex << keypress << ")" << flush;
@@ -235,13 +235,13 @@ int main() {
                     //      << ", Keypress: 0x" << hex << keypress 
                     //      << " (" << bitset<16>(keypress) << ") "
                     //      << "Keys: ";
-                    for (const auto& key : keys) {
-                        cout << key << " ";
-                    }
-                    cout << "\n-> Initial Seed: 0x" << result
-                         << " -> Next Value Upper32: 0x" << upper32 << endl;
+                    // for (const auto& key : keys) {
+                    //     cout << key << " ";
+                    // }
+                    // cout << "\n-> Initial Seed: 0x" << result
+                    //      << " -> Next Value Upper32: 0x" << upper32 << endl;
 
-                    result_file << dec << 2000 + year << "/8/30"
+                    result_file << dec << 2000 + year << "/8/31 "
                               << hour << ":" << minute << ":" << second
                               << " Keypress: 0x" << hex << keypress 
                               << " Keys: ";
@@ -258,7 +258,7 @@ int main() {
     auto end_time = chrono::high_resolution_clock::now();
     auto duration = chrono::duration_cast<chrono::seconds>(end_time - start_time).count();
     
-    cout << "\n実行時間: " << duration/60 << "m" << duration%60 << "s" << endl;
+    cout << "\n実行時間: 0x" << duration/60 << "m 0x" << duration%60 << "s" << endl;
     cout << "見つかった組み合わせの数: " << found_seeds.size() << endl;
 
     result_file.close();
