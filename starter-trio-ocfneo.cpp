@@ -128,7 +128,7 @@ int main() {
                                     for (const auto& key : keys) {
                                         result_file << key << " ";
                                     }
-                                    result_file << " Initial Seed: 0x" << result << endl;
+                                    result_file << " Initial Seed: 0x" << next_value << endl;
                                 }
                             }
                         }
@@ -141,7 +141,7 @@ int main() {
     auto end_time = chrono::high_resolution_clock::now();
     auto duration = chrono::duration_cast<chrono::seconds>(end_time - start_time).count();
     
-    cout << "\n実行時間: " << duration/60 << "m " << duration%60 << "s" << endl;
+    cout << "\n実行時間: " << duration/60 << dec << "m " << duration%60 << "s" << endl;
     cout << "Found seeds: " << found_seeds.size() << endl;
 
     result_file.close();
