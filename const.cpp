@@ -14,7 +14,7 @@ Version::Version(string label) : Label(label) {
 void Version::initializeValues() {
     static const map<string, pair<array<uint32_t, 5>, uint32_t>> versionData = {
         {"JPB1", {{0x02215F10, 0x0221600C, 0x0221600C, 0x02216058, 0x02216058}, 0x60}},
-        {"JPW1", {{0x02215F30, 0x0226020C, 0x0226020C, 0x02216078, 0x02216078}, 0x5F}},
+        {"JPW1", {{0x02215f30, 0x0221602C, 0x0221602C, 0x02216078, 0x02216078}, 0x5F}},
         {"JPB2", {{0x0209A8DC, 0x02039AC9, 0x021FF9B0, 0x021FFA04, 0x021FFA04}, 0x82}},
         {"JPW2", {{0x0209A8FC, 0x02039AF5, 0x021FF9D0, 0x021FFA24, 0x021FFA24}, 0x82}}
     };
