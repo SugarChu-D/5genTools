@@ -210,9 +210,9 @@ uint64_t SHA1_Array(SHA1_DATA* sha1d, const array<uint32_t, 16>& data) {
 
 //     try {
 //         // 固定パラメータの設定
-//         Version version("JPB1");
-//         uint16_t Timer0 = 0x0C7A;
-//         bool isDSLite = true;
+//         Version version("JPW1");
+//         uint16_t Timer0 = 0x0C69;
+//         bool isDSLite = false;
 //         uint64_t MAC = 0x0009BF6D93CE;
 //         GameDate gameDate(60, 3, 23, 13, 1, 18);
 
