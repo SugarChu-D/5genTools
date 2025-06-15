@@ -29,9 +29,9 @@ struct SearchDate {
 };
 
 const vector<SearchDate> search_dates = {
-    {4, 30, "4/30"},
-    {8, 31, "8/31"},
-    {12, 31, "12/31"}
+    {4, 29, "4/29"},
+    {8, 30, "8/30"},
+    {12, 30, "12/30"}
 };
 
 int main() {
@@ -40,7 +40,7 @@ int main() {
     atomic<bool> should_exit{false};
 
     // 結果出力用ファイル
-    ofstream result_file("result_6V.txt");
+    ofstream result_file("result_6Vn.txt");
     if (!result_file) {
         cerr << "結果ファイルを開けません" << endl;
         return 1;
@@ -66,7 +66,7 @@ int main() {
     auto start_time = chrono::high_resolution_clock::now();
 
     // 全探索の総数を計算（100年 × 3日付 × 有効keypress数）
-    uint64_t total_iterations = 100ULL * 3 * 24 * 60 * 20 * keypressManager.size();
+    uint64_t total_iterations = 100ULL * 3 * 2 * 60 * 6 * keypressManager.size();
     
     cout << "Total iterations: " << total_iterations << endl;
     cout << "Starting parallel search..." << endl;
@@ -77,9 +77,9 @@ int main() {
         #pragma omp for schedule(dynamic, 1000) collapse(6)
         for (int date_idx = 0; date_idx < 3; ++date_idx) {
             for (int year = 0; year < 100; ++year) {
-                for (int hour = 0; hour < 24; ++hour) {
+                for (int hour = 22; hour < 24; ++hour) {
                     for (int minute = 0; minute < 60; ++minute) {
-                        for (int second = 5; second < 25; ++second) {
+                        for (int second = 5; second < 18; ++second) {
                             for (size_t keypress_idx = 0; keypress_idx < keypressManager.size(); ++keypress_idx) {
                                 if (should_exit) continue;
 
@@ -89,10 +89,10 @@ int main() {
 
                                 // 進捗表示
                                 uint64_t current_iteration = 
-                                    static_cast<uint64_t>(date_idx) * 100 * 24 * 60 * 20 * keypressManager.size() +
-                                    static_cast<uint64_t>(year) * 24 * 60 * 20 * keypressManager.size() +
-                                    static_cast<uint64_t>(hour) * 60 * 20 * keypressManager.size() +
-                                    static_cast<uint64_t>(minute) * 20 * keypressManager.size() +
+                                    static_cast<uint64_t>(date_idx) * 100 * 2 * 60 * 6 * keypressManager.size() +
+                                    static_cast<uint64_t>(year) * 2 * 60 * 6 * keypressManager.size() +
+                                    static_cast<uint64_t>(hour) * 60 * 6 * keypressManager.size() +
+                                    static_cast<uint64_t>(minute) * 6 * keypressManager.size() +
                                     static_cast<uint64_t>(second - 5) * keypressManager.size() +
                                     static_cast<uint64_t>(keypress_idx);
 
