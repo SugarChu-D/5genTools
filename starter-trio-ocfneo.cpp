@@ -46,11 +46,23 @@ int main() {
         return 1;
     }
 
-    // 固定パラメータの設定
-    Version version("JPW1");
-    uint16_t Timer0 = 0x0C68;
-    bool isDSLite = false;
-    uint64_t MAC = 0x0009BF6D93CE;
+    // config.txtからパラメータを読み込む
+    ifstream config_file("config.txt");
+    if (!config_file) {
+        cerr << "config.txtを開けません" << endl;
+        return 1;
+    }
+    string version_str, timer0_str, isDSLite_str, mac_str;
+    getline(config_file, version_str);
+    getline(config_file, timer0_str);
+    getline(config_file, isDSLite_str);
+    getline(config_file, mac_str);
+    config_file.close();
+
+    Version version(version_str);
+    uint16_t Timer0 = static_cast<uint16_t>(stoul(timer0_str, nullptr, 16));
+    bool isDSLite = (isDSLite_str == "true" || isDSLite_str == "1");
+    uint64_t MAC = stoull(mac_str, nullptr, 16);
 
     // パラメータの構造体を作成
     InitialSeedParams params = {
@@ -77,7 +89,7 @@ int main() {
         #pragma omp for schedule(dynamic, 1000) collapse(6)
         for (int date_idx = 0; date_idx < 3; ++date_idx) {
             for (int year = 0; year < 100; ++year) {
-                for (int hour = 0; hour < 24; ++hour) {
+                for (int hour = 0; hour < 23; ++hour) {
                     for (int minute = 0; minute < 60; ++minute) {
                         for (int second = 5; second < 25; ++second) {
                             for (size_t keypress_idx = 0; keypress_idx < keypressManager.size(); ++keypress_idx) {
