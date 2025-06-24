@@ -11,8 +11,8 @@
 #include "const.h"
 #include "GameDate.h"
 
-// keypresses.cppを追加
-#include "keypresses.cpp"
+// 配列ベースのkeypresses.cppを追加
+#include "keypresses_array_generated.cpp"
 
 using namespace std;
 
@@ -42,80 +42,87 @@ int main() {
     // 結果出力用ファイル
     ofstream result_file("result_6V.txt");
     if (!result_file) {
-        cerr << "結果ファイルを開けません" << endl;
+        cerr << "cannot open result_file" << endl;
         return 1;
     }
 
     // config.txtからパラメータを読み込む
     ifstream config_file("config.txt");
     if (!config_file) {
-        cerr << "config.txtを開けません" << endl;
+        cerr << "cannot open config.txt" << endl;
         return 1;
     }
+    
     string version_str, timer0_str, isDSLite_str, mac_str;
-    getline(config_file, version_str);
-    getline(config_file, timer0_str);
-    getline(config_file, isDSLite_str);
-    getline(config_file, mac_str);
+    if (!getline(config_file, version_str) || 
+        !getline(config_file, timer0_str) || 
+        !getline(config_file, isDSLite_str) || 
+        !getline(config_file, mac_str)) {
+        cerr << "failed to read config.txt" << endl;
+        return 1;
+    }
     config_file.close();
 
-    Version version(version_str);
-    uint16_t Timer0 = static_cast<uint16_t>(stoul(timer0_str, nullptr, 16));
-    bool isDSLite = (isDSLite_str == "true" || isDSLite_str == "1");
-    uint64_t MAC = stoull(mac_str, nullptr, 16);
+    // パラメータの検証と変換
+    try {
+        Version version(version_str);
+        uint16_t Timer0 = static_cast<uint16_t>(stoul(timer0_str, nullptr, 16));
+        bool isDSLite = (isDSLite_str == "true" || isDSLite_str == "1");
+        uint64_t MAC = stoull(mac_str, nullptr, 16);
 
-    // パラメータの構造体を作成
-    InitialSeedParams params = {
-        version,
-        Timer0,
-        isDSLite,
-        MAC
-    };
+        // パラメータの構造体を作成
+        InitialSeedParams params = {
+            version,
+            Timer0,
+            isDSLite,
+            MAC
+        };
 
-    // KeypressManagerの統計情報を表示
-    keypressManager.printStats();
+    // 配列ベースの統計情報を表示
+    printKeypressStats();
+
+    // 総反復回数の計算（最適化版）
+    uint64_t total_iterations = 100 * 3 * 24 * 60 * 20 * VALID_KEYPRESS_COUNT;
+    cout << "Total iterations: " << total_iterations << " (" 
+         << (total_iterations / 1000000) << "M iterations)" << endl;
+    cout << "Starting parallel search with " << omp_get_max_threads() << " threads..." << endl;
+    cout << "Target seeds: " << target_seeds.size() << " values" << endl;
 
     auto start_time = chrono::high_resolution_clock::now();
-
-    // 全探索の総数を計算（100年 × 3日付 × 有効keypress数）
-    uint64_t total_iterations = 100ULL * 3 * 24 * 60 * 20 * keypressManager.size();
-    
-    cout << "Total iterations: " << total_iterations << endl;
-    cout << "Starting parallel search..." << endl;
 
     #pragma omp parallel
     {
         SHA1_DATA sha1d = {};
-        #pragma omp for schedule(dynamic, 1000) collapse(6)
+        #pragma omp for schedule(dynamic, 10000) collapse(6)
         for (int date_idx = 0; date_idx < 3; ++date_idx) {
             for (int year = 0; year < 100; ++year) {
                 for (int hour = 0; hour < 23; ++hour) {
                     for (int minute = 0; minute < 60; ++minute) {
                         for (int second = 5; second < 25; ++second) {
-                            for (size_t keypress_idx = 0; keypress_idx < keypressManager.size(); ++keypress_idx) {
+                            for (size_t keypress_idx = 0; keypress_idx < VALID_KEYPRESS_COUNT; ++keypress_idx) {
                                 if (should_exit) continue;
 
                                 const SearchDate& current_date = search_dates[date_idx];
                                 GameDate gameDate(year, current_date.month, current_date.day, hour, minute, second);
-                                uint16_t keypress = keypressManager[keypress_idx];
+                                uint16_t keypress = VALID_KEYPRESSES[keypress_idx];
 
-                                // 進捗表示
+                                // 進捗表示（頻度を調整）
                                 uint64_t current_iteration = 
-                                    static_cast<uint64_t>(date_idx) * 100 * 24 * 60 * 20 * keypressManager.size() +
-                                    static_cast<uint64_t>(year) * 24 * 60 * 20 * keypressManager.size() +
-                                    static_cast<uint64_t>(hour) * 60 * 20 * keypressManager.size() +
-                                    static_cast<uint64_t>(minute) * 20 * keypressManager.size() +
-                                    static_cast<uint64_t>(second - 5) * keypressManager.size() +
+                                    static_cast<uint64_t>(date_idx) * 100 * 23 * 60 * 20 * VALID_KEYPRESS_COUNT +
+                                    static_cast<uint64_t>(year) * 23 * 60 * 20 * VALID_KEYPRESS_COUNT +
+                                    static_cast<uint64_t>(hour) * 60 * 20 * VALID_KEYPRESS_COUNT +
+                                    static_cast<uint64_t>(minute) * 20 * VALID_KEYPRESS_COUNT +
+                                    static_cast<uint64_t>(second - 5) * VALID_KEYPRESS_COUNT +
                                     static_cast<uint64_t>(keypress_idx);
 
-                                if (current_iteration % (0x100000 * 24) == 0) {
+                                if (current_iteration % (0x1000000) == 0) {
                                     #pragma omp critical
                                     {
                                         double progress = (static_cast<double>(current_iteration) / total_iterations) * 100;
                                         cout << "\rprogress: " << fixed << setprecision(2) 
                                              << progress << "% (Date: " << current_date.name
                                              << ", Year: " << dec << 2000 + year 
-                                             << ", hour: "  << hour << ")" << flush;
+                                             << ", Hour: " << hour << ")" << flush;
                                     }
                                 }
 
@@ -133,6 +140,7 @@ int main() {
                                     // キー入力の解析を追加
                                     vector<string> keys = getKeysFromBits(keypress);
                         
+                                    // 結果を即座にファイルに出力
                                     result_file << dec << year << "," << current_date.month << "," << current_date.day << ","
                                                 << hour << "," << minute << "," << second
                                                 << "," << hex << next_value << ",";
@@ -140,6 +148,13 @@ int main() {
                                         result_file << key << " ";
                                     }
                                     result_file << endl;
+                                    result_file.flush(); // 即座にフラッシュ
+                                    
+                                    // コンソールにも表示
+                                    cout << "\n[Found] Date: " << current_date.name << "/" << 2000 + year 
+                                         << " " << hour << ":" << minute << ":" << second
+                                         << " Keypress: 0x" << hex << keypress 
+                                         << " Seed: 0x" << next_value << endl;
                                 }
                             }
                         }
@@ -152,9 +167,16 @@ int main() {
     auto end_time = chrono::high_resolution_clock::now();
     auto duration = chrono::duration_cast<chrono::seconds>(end_time - start_time).count();
     
-    cout << "\n実行時間: " << duration/60 << dec << "m " << duration%60 << "s" << endl;
-    cout << "Found seeds: " << found_seeds.size() << endl;
+    cout << "\n=== Search completed ===" << endl;
+    cout << "Execution time: " << duration/60 << " minutes " << duration%60 << " seconds" << endl;
+    cout << "Found combinations: " << found_seeds.size() << " values" << endl;
+    cout << "Result file: result_6V.txt" << endl;
 
     result_file.close();
     return 0;
+    
+    } catch (const exception& e) {
+        cerr << "Error: " << e.what() << endl;
+        return 1;
+    }
 }
