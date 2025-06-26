@@ -11,11 +11,10 @@
 #include "const.h"
 #include "GameDate.h"
 
-// keypresses.cppを追加
-#include "keypresses.cpp"
+// 配列ベースのkeypresses.cppを追加
+#include "keypresses_array_generated.cpp"
 
 using namespace std;
-
 
 // ターゲットとなる上位32ビット値の定数セット
 const unordered_set<uint32_t> target_seeds = {
@@ -158,7 +157,23 @@ const unordered_set<uint32_t> target_seeds = {
     0xfc4aa3ac, 0xfc7dc559, 0xfca7c990, 0xfcdd4a76, 0xfd2d1605, 0xfd2f3685, 0xfd8cb5a2, 0xfdc7b188,
     0xfdd22b01, 0xfe1afb58, 0xfe22a367, 0xfe2786b4, 0xfe368e21, 0xfe525d51, 0xfe7f04ae, 0xfefc4fa5,
     0xff33245d, 0xff604777, 0xff93bf1d, 0xff9d5686, 0xffa8f0ea
+};
 
+// 探索対象の日付を定義
+struct SearchDate {
+    int month;
+    int day;
+    string name;
+    bool is_night;
+};
+
+const vector<SearchDate> search_dates = {
+    {4, 29, "4/29", true},
+    {4, 30, "4/30", false},
+    {8, 30, "8/30", true},
+    {8, 31, "8/31", false},
+    {12, 30, "12/30", true},
+    {12, 31, "12/31", false}
 };
 
 int main() {
@@ -167,100 +182,149 @@ int main() {
     atomic<bool> should_exit{false};
 
     // 結果出力用ファイル
-    ofstream result_file("result.txt");
+    ofstream result_file("result_pup.txt", ios::binary);
     if (!result_file) {
-        cerr << "結果ファイルを開けません" << endl;
+        cerr << "cannot open result_file" << endl;
         return 1;
     }
 
-    // 固定パラメータの設定
-    Version version("JPB1");
-    uint16_t Timer0 = 0x0C7A;
-    bool isDSLite = false;
-    uint64_t MAC = 0x0009BF6D93CE;
+    // UTF-8 BOMを書き込み
+    result_file.write("\xEF\xBB\xBF", 3);
+    
+    result_file << "年,月,日,時,分,秒,Timer0,消費数,H,A,B,C,D,S,めざパ,威力,初期seed,キー入力" << endl;
 
-    // パラメータの構造体を作成
-    InitialSeedParams params = {
-        version,
-        Timer0,
-        isDSLite,
-        MAC
-    };
+    // config.txtからパラメータを読み込む
+    ifstream config_file("config.txt");
+    if (!config_file) {
+        cerr << "cannot open config.txt" << endl;
+        return 1;
+    }
+    
+    string version_str, timer0_str, isDSLite_str, mac_str;
+    if (!getline(config_file, version_str) || 
+        !getline(config_file, timer0_str) || 
+        !getline(config_file, isDSLite_str) || 
+        !getline(config_file, mac_str)) {
+        cerr << "failed to read config.txt" << endl;
+        return 1;
+    }
+    config_file.close();
+
+    // パラメータの検証と変換
+    try {
+        Version version(version_str);
+        uint16_t Timer0 = static_cast<uint16_t>(stoul(timer0_str, nullptr, 16));
+        bool isDSLite = (isDSLite_str == "true" || isDSLite_str == "1");
+        uint64_t MAC = stoull(mac_str, nullptr, 16);
+
+        // パラメータの構造体を作成
+        InitialSeedParams params = {
+            version,
+            Timer0,
+            isDSLite,
+            MAC
+        };
+
+    // 配列ベースの統計情報を表示
+    printKeypressStats();
+
+    // 総反復回数の計算（最適化版）
+    uint64_t total_iterations = 100 * 6 * 25 * 60 * 2 * VALID_KEYPRESS_COUNT;
+    cout << "Total iterations: " << total_iterations << " (" 
+         << (total_iterations / 1000000) << "M iterations)" << endl;
+    cout << "Starting parallel search with " << omp_get_max_threads() << " threads..." << endl;
+    cout << "Target seeds: " << target_seeds.size() << " values" << endl;
 
     auto start_time = chrono::high_resolution_clock::now();
-
-    // 全探索の総数を計算（100年 × 0x1000個のkeypress）
-    uint64_t total_iterations = 100ULL * 24 * 60 * 0x1000;
 
     #pragma omp parallel
     {
         SHA1_DATA sha1d = {};
-        #pragma omp for schedule(dynamic, 1000) collapse(5)
-        for (int year = 0; year < 100; ++year) {
-        for (int hour = 0; hour < 24; ++hour) {
-        for (int minute = 0; minute < 60; ++minute) {
-        for (int second = 5; second < 6; ++second) {
-            for (uint16_t keypress = 0x2000; keypress <= 0x2fff; ++keypress) {
-                if (should_exit) continue;
+        #pragma omp for schedule(dynamic, 10000) collapse(6)
+        for (int date_idx = 0; date_idx < 6; ++date_idx) {
+            for (int year = 0; year < 100; ++year) {
+                for (int hour = 0; hour < 24; ++hour) {
+                    for (int minute = 0; minute < 60; ++minute) {
+                        for (int second = 5; second <= 6; ++second) {
+                            for (size_t keypress_idx = 0; keypress_idx < VALID_KEYPRESS_COUNT; ++keypress_idx) {
+                                bool is_night = search_dates[date_idx].is_night;
+                                if ((is_night && hour < 22) || (!is_night && hour > 21)) continue;
+                                if (should_exit) continue;
 
-                // 8月30日で固定、年のみ変更
-                GameDate gameDate(year, 8, 31, hour, minute, second);
+                                GameDate gameDate(year, search_dates[date_idx].month, search_dates[date_idx].day, hour, minute, second);
+                                uint16_t keypress = VALID_KEYPRESSES[keypress_idx];
 
-                // 進捗表示（年とkeypressの組み合わせから計算）
-                if ((year * 0x1000 * 24 * 60 + (keypress - 0x2000)) % 0x100000 == 0) {
-                    #pragma omp critical
-                    {
-                        double progress = (static_cast<double>(year * 0x1000 * 24 * 60 + (keypress - 0x2000)) / total_iterations) * 100;
-                        cout << "\r進捗: " << fixed << setprecision(2) 
-                             << progress << "% (Year: " << dec << 2000 + year 
-                             << ", Keypress: 0x" << hex << keypress << ")" << flush;
-                    }
-                }
+                                // 進捗表示（頻度を調整）
+                                uint64_t current_iteration = 
+                                    static_cast<uint64_t>(date_idx) * 100 * 25 * 60 * 2 * VALID_KEYPRESS_COUNT +
+                                    static_cast<uint64_t>(year) * 24 * 60 * 2 * VALID_KEYPRESS_COUNT +
+                                    static_cast<uint64_t>(hour) * 60 * 2 * VALID_KEYPRESS_COUNT +
+                                    static_cast<uint64_t>(minute) * 2 * VALID_KEYPRESS_COUNT +
+                                    static_cast<uint64_t>(second - 5) * VALID_KEYPRESS_COUNT +
+                                    static_cast<uint64_t>(keypress_idx);
 
-                uint64_t result = initialSEED(&sha1d, params, gameDate, keypress);
-                
-                // LCGで次の値を生成し、上位32ビットを取得
-                uint64_t next_value = result * 0x5D588B656C078965UL + 0x269EC3UL;
-                uint32_t upper32 = static_cast<uint32_t>(next_value >> 32);
+                                if (current_iteration % (0x1000000) == 0) {
+                                    #pragma omp critical
+                                    {
+                                        double progress = (static_cast<double>(current_iteration) / total_iterations) * 100;
+                                        cout << "\rprogress: " << fixed << setprecision(2) 
+                                             << progress << "% (Date: " << search_dates[date_idx].name
+                                             << ", Year: " << dec << 2000 + year 
+                                             << ", Hour: " << hour << ")" << flush;
+                                    }
+                                }
 
-                // ターゲット値と比較
-                if (target_seeds.find(upper32) != target_seeds.end()) {
-                    lock_guard<mutex> lock(found_mutex);
-                    found_seeds.push_back(keypress);
+                                uint64_t result = initialSEED(&sha1d, params, gameDate, keypress);
                     
-                    // キー入力の解析を追加
-                    vector<string> keys = getKeysFromBits(keypress);
-                    
-                    // cout << "\n[Found] Year: " << dec << 2000 + year 
-                    //      << ", Keypress: 0x" << hex << keypress 
-                    //      << " (" << bitset<16>(keypress) << ") "
-                    //      << "Keys: ";
-                    // for (const auto& key : keys) {
-                    //     cout << key << " ";
-                    // }
-                    // cout << "\n-> Initial Seed: 0x" << result
-                    //      << " -> Next Value Upper32: 0x" << upper32 << endl;
+                                // LCGで次の値を生成し、上位32ビットを取得
+                                uint64_t next_value = result * 0x5D588B656C078965UL + 0x269EC3UL;
+                                uint32_t upper32 = static_cast<uint32_t>(next_value >> 32);
 
-                    result_file << dec << 2000 + year << "/8/31 "
-                              << hour << ":" << minute << ":" << second
-                              << " Keypress: 0x" << hex << keypress 
-                              << " Keys: ";
-                    for (const auto& key : keys) {
-                        result_file << key << " ";
+                                // ターゲット値と比較
+                                if (target_seeds.find(upper32) != target_seeds.end()) {
+                                    lock_guard<mutex> lock(found_mutex);
+                                    found_seeds.push_back(keypress);
+                        
+                                    // キー入力の解析を追加
+                                    vector<string> keys = getKeysFromBits(keypress);
+                        
+                                    // 結果を即座にファイルに出力
+                                    result_file << dec << year << "," << search_dates[date_idx].month << "," << search_dates[date_idx].day << ","
+                                                << hour << "," << minute << "," << second << "," << hex << Timer0 << ",0,31,31,31,31,31,31,悪,70,"
+                                                << next_value << ",";
+                                    for (const auto& key : keys) {
+                                        result_file << key << " ";
+                                    }
+                                    result_file << endl;
+                                    result_file.flush(); // 即座にフラッシュ
+                                    
+                                    // コンソールにも表示
+                                    // cout << "\n[Found] Date: " << search_dates[date_idx].name << "/" << 2000 + year 
+                                    //      << " " << hour << ":" << minute << ":" << second
+                                    //      << " Keypress: 0x" << hex << keypress 
+                                    //      << " Seed: 0x" << next_value << endl;
+                                }
+                            }
+                        }
                     }
-                    result_file << " Initial Seed: 0x" << result 
-                              << " Next Value Upper32: 0x" << upper32 << endl;
                 }
             }
         }
-    }}}}
+    }
 
     auto end_time = chrono::high_resolution_clock::now();
     auto duration = chrono::duration_cast<chrono::seconds>(end_time - start_time).count();
     
-    cout << "\n実行時間: 0x" << duration/60 << "m 0x" << duration%60 << "s" << endl;
-    cout << "見つかった組み合わせの数: " << found_seeds.size() << endl;
+    cout << "\n=== Search completed ===" << endl;
+    cout << "Execution time: " << duration/60 << " minutes " << duration%60 << " seconds" << endl;
+    cout << "Found combinations: " << found_seeds.size() << " values" << endl;
+    cout << "Result file: result_pup.txt" << endl;
 
     result_file.close();
     return 0;
+    
+    } catch (const exception& e) {
+        cerr << "Error: " << e.what() << endl;
+        return 1;
+    }
 }
