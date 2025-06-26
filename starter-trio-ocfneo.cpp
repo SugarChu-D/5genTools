@@ -26,12 +26,16 @@ struct SearchDate {
     int month;
     int day;
     string name;
+    bool is_night;
 };
 
 const vector<SearchDate> search_dates = {
-    {4, 30, "4/30"},
-    {8, 31, "8/31"},
-    {12, 31, "12/31"}
+    {4, 29, "4/29", true},
+    {4, 30, "4/30", false},
+    {8, 30, "8/30", true},
+    {8, 31, "8/31", false},
+    {12, 30, "12/30", true},
+    {12, 31, "12/31", false}
 };
 
 int main() {
@@ -40,11 +44,16 @@ int main() {
     atomic<bool> should_exit{false};
 
     // 結果出力用ファイル
-    ofstream result_file("result_6V.txt");
+    ofstream result_file("result_6V.txt", ios::binary);
     if (!result_file) {
         cerr << "cannot open result_file" << endl;
         return 1;
     }
+
+    // UTF-8 BOMを書き込み
+    result_file.write("\xEF\xBB\xBF", 3);
+    
+    result_file << "年,月,日,時,分,秒,Timer0,消費数,H,A,B,C,D,S,めざパ,威力,初期seed,キー入力" << endl;
 
     // config.txtからパラメータを読み込む
     ifstream config_file("config.txt");
@@ -82,7 +91,7 @@ int main() {
     printKeypressStats();
 
     // 総反復回数の計算（最適化版）
-    uint64_t total_iterations = 100 * 3 * 24 * 60 * 20 * VALID_KEYPRESS_COUNT;
+    uint64_t total_iterations = 100 * 6 * 25 * 60 * 20 * VALID_KEYPRESS_COUNT;
     cout << "Total iterations: " << total_iterations << " (" 
          << (total_iterations / 1000000) << "M iterations)" << endl;
     cout << "Starting parallel search with " << omp_get_max_threads() << " threads..." << endl;
@@ -94,25 +103,26 @@ int main() {
     {
         SHA1_DATA sha1d = {};
         #pragma omp for schedule(dynamic, 10000) collapse(6)
-        for (int date_idx = 0; date_idx < 3; ++date_idx) {
+        for (int date_idx = 0; date_idx < 6; ++date_idx) {
             for (int year = 0; year < 100; ++year) {
-                for (int hour = 0; hour < 23; ++hour) {
+                for (int hour = 0; hour < 24; ++hour) {
                     for (int minute = 0; minute < 60; ++minute) {
-                        for (int second = 5; second < 25; ++second) {
+                        for (int second = 0; second < 60; ++second) {
                             for (size_t keypress_idx = 0; keypress_idx < VALID_KEYPRESS_COUNT; ++keypress_idx) {
+                                bool is_night = search_dates[date_idx].is_night;
+                                if ((is_night && hour < 22) || (!is_night && hour > 21)) continue;
                                 if (should_exit) continue;
 
-                                const SearchDate& current_date = search_dates[date_idx];
-                                GameDate gameDate(year, current_date.month, current_date.day, hour, minute, second);
+                                GameDate gameDate(year, search_dates[date_idx].month, search_dates[date_idx].day, hour, minute, second);
                                 uint16_t keypress = VALID_KEYPRESSES[keypress_idx];
 
                                 // 進捗表示（頻度を調整）
                                 uint64_t current_iteration = 
-                                    static_cast<uint64_t>(date_idx) * 100 * 23 * 60 * 20 * VALID_KEYPRESS_COUNT +
-                                    static_cast<uint64_t>(year) * 23 * 60 * 20 * VALID_KEYPRESS_COUNT +
+                                    static_cast<uint64_t>(date_idx) * 100 * 25 * 60 * 20 * VALID_KEYPRESS_COUNT +
+                                    static_cast<uint64_t>(year) * 24 * 60 * 20 * VALID_KEYPRESS_COUNT +
                                     static_cast<uint64_t>(hour) * 60 * 20 * VALID_KEYPRESS_COUNT +
                                     static_cast<uint64_t>(minute) * 20 * VALID_KEYPRESS_COUNT +
-                                    static_cast<uint64_t>(second - 5) * VALID_KEYPRESS_COUNT +
+                                    static_cast<uint64_t>(second) * VALID_KEYPRESS_COUNT +
                                     static_cast<uint64_t>(keypress_idx);
 
                                 if (current_iteration % (0x1000000) == 0) {
@@ -120,7 +130,7 @@ int main() {
                                     {
                                         double progress = (static_cast<double>(current_iteration) / total_iterations) * 100;
                                         cout << "\rprogress: " << fixed << setprecision(2) 
-                                             << progress << "% (Date: " << current_date.name
+                                             << progress << "% (Date: " << search_dates[date_idx].name
                                              << ", Year: " << dec << 2000 + year 
                                              << ", Hour: " << hour << ")" << flush;
                                     }
@@ -141,9 +151,9 @@ int main() {
                                     vector<string> keys = getKeysFromBits(keypress);
                         
                                     // 結果を即座にファイルに出力
-                                    result_file << dec << year << "," << current_date.month << "," << current_date.day << ","
-                                                << hour << "," << minute << "," << second
-                                                << "," << hex << next_value << ",";
+                                    result_file << dec << year << "," << search_dates[date_idx].month << "," << search_dates[date_idx].day << ","
+                                                << hour << "," << minute << "," << second << "," << hex << Timer0 << ",0,31,31,31,31,31,31,悪,70,"
+                                                << next_value << ",";
                                     for (const auto& key : keys) {
                                         result_file << key << " ";
                                     }
@@ -151,10 +161,10 @@ int main() {
                                     result_file.flush(); // 即座にフラッシュ
                                     
                                     // コンソールにも表示
-                                    cout << "\n[Found] Date: " << current_date.name << "/" << 2000 + year 
-                                         << " " << hour << ":" << minute << ":" << second
-                                         << " Keypress: 0x" << hex << keypress 
-                                         << " Seed: 0x" << next_value << endl;
+                                    // cout << "\n[Found] Date: " << search_dates[date_idx].name << "/" << 2000 + year 
+                                    //      << " " << hour << ":" << minute << ":" << second
+                                    //      << " Keypress: 0x" << hex << keypress 
+                                    //      << " Seed: 0x" << next_value << endl;
                                 }
                             }
                         }
