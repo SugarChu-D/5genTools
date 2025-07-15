@@ -6,7 +6,7 @@
 #include <chrono>
 #include <vector>
 #include <mutex>
-#include "MT_1.cpp"
+#include "MT_1.h"
 #include <fstream>
 #include <sstream>
 
@@ -21,18 +21,18 @@ SearchConfig get_targets_from_file(const string& filename = "ivs.txt") {
     SearchConfig config;
     ifstream file(filename);
     if (!file) {
-        throw runtime_error("設定ファイルが開けません: " + filename);
+        throw runtime_error("Could not open configuration file: " + filename);
     }
 
     // 最初の行からp値を読み込む
     string first_line;
     if (!getline(file, first_line)) {
-        throw runtime_error("設定ファイルが空です");
+        throw runtime_error("Configuration file is empty.");
     }
     
     stringstream p_ss(first_line);
     if (!(p_ss >> config.p_value) || config.p_value > 20) {
-        throw runtime_error("無効なp値です（0-20の整数を入力してください）: " + first_line);
+        throw runtime_error("Invalid p value (must be an integer between 0-20): " + first_line);
     }
 
     // 残りの行からtargetを読み込む
@@ -50,14 +50,12 @@ SearchConfig get_targets_from_file(const string& filename = "ivs.txt") {
             if (value >= 0 && value <= 31) {
                 values.push_back(value);
             } else {
-                throw runtime_error("無効な設定値（0-31の整数を入力してください）: " + 
-                                  to_string(value) + " (行: " + to_string(line_number) + ")");
+                throw runtime_error("Invalid setting value (must be an integer between 0-31): " + to_string(value) + " (line: " + to_string(line_number) + ")");
             }
         }
 
         if (values.size() != 6) {
-            throw runtime_error("1行に6つの値が必要です (行: " + to_string(line_number) + 
-                              ", 見つかった値: " + to_string(values.size()) + ")");
+            throw runtime_error("Each line must contain 6 values (line: " + to_string(line_number) + ", found: " + to_string(values.size()) + ")");
         }
 
         // 6つの値からtargetを生成
@@ -69,7 +67,7 @@ SearchConfig get_targets_from_file(const string& filename = "ivs.txt") {
     }
 
     if (config.targets.empty()) {
-        throw runtime_error("設定ファイルに有効な値が見つかりません");
+        throw runtime_error("No valid values found in the configuration file.");
     }
 
     return config;
@@ -85,7 +83,7 @@ int main() {
         ofstream result_file("result.txt");
         ofstream seed_file("ivseed.txt");
         if (!result_file || !seed_file) {
-            cerr << "結果ファイルを開けません" << endl;
+            cerr << "Could not open result file." << endl;
             return 1;
         }
 
@@ -107,7 +105,7 @@ int main() {
 
         // 一回の探索で全targetをチェック
         #pragma omp parallel for schedule(dynamic, 10000)
-        for (uint64_t seed = 0; seed <= 0xFFFFFFFF; ++seed) {
+        for (int64_t seed = 0; seed <= 0xFFFFFFFF; ++seed) {
             // 終了フラグをチェック
             if (should_exit) {
                 continue;
@@ -171,7 +169,7 @@ int main() {
         }
     }
     catch (const exception& e) {
-        cerr << "エラー: " << e.what() << endl;
+        cerr << "Error: " << e.what() << endl;
         return 1;
     }
     catch (...) {
