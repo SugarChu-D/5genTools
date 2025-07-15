@@ -5,6 +5,12 @@
 
 using namespace std;
 
+const std::map<std::string, char> valid_versions = {
+    {"JPB1", '1'}, {"JPW1", '1'},
+    {"JPB2", '2'}, {"JPW2", '2'}
+    // Add other versions like USB1, USW2 etc. here if needed
+};
+
 // コンストラクタの実装
 Version::Version(string label) : Label(label) {
     initializeValues();

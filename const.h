@@ -21,4 +21,6 @@ public:
     void print() const;
 };
 
+extern const std::map<std::string, char> valid_versions;
+
 #endif
