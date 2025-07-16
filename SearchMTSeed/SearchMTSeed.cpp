@@ -24,7 +24,6 @@ SearchConfig get_targets_from_file(const string& filename = "ivs.txt") {
         throw runtime_error("Could not open configuration file: " + filename);
     }
 
-    // 最初の行からp値を読み込む
     string first_line;
     if (!getline(file, first_line)) {
         throw runtime_error("Configuration file is empty.");
@@ -35,9 +34,8 @@ SearchConfig get_targets_from_file(const string& filename = "ivs.txt") {
         throw runtime_error("Invalid p value (must be an integer between 0-20): " + first_line);
     }
 
-    // 残りの行からtargetを読み込む
     string line;
-    int line_number = 1;  // p値の行を考慮
+    int line_number = 1;
     
     while (getline(file, line)) {
         line_number++;
@@ -45,7 +43,6 @@ SearchConfig get_targets_from_file(const string& filename = "ivs.txt") {
         vector<int> values;
         int value;
         
-        // 1行から6つの値を読み込み
         while (ss >> value) {
             if (value >= 0 && value <= 31) {
                 values.push_back(value);
@@ -58,7 +55,6 @@ SearchConfig get_targets_from_file(const string& filename = "ivs.txt") {
             throw runtime_error("Each line must contain 6 values (line: " + to_string(line_number) + ", found: " + to_string(values.size()) + ")");
         }
 
-        // 6つの値からtargetを生成
         uint32_t target = 0;
         for (int i = 0; i < 6; i++) {
             target |= (values[i] & 0x1F) << (5 * (5 - i));
@@ -77,9 +73,8 @@ int main() {
     try {
         vector<uint32_t> found_seeds;
         mutex found_mutex;
-        atomic<bool> should_exit{false};  // 終了フラグを追加
+        atomic<bool> should_exit{false};
 
-        // 既存のresult.txtに加えて、ivseed.txt用のファイルストリームを追加
         ofstream result_file("result.txt");
         ofstream seed_file("ivseed.txt");
         if (!result_file || !seed_file) {
@@ -103,15 +98,12 @@ int main() {
         
         auto start_time = chrono::high_resolution_clock::now();
 
-        // 一回の探索で全targetをチェック
         #pragma omp parallel for schedule(dynamic, 10000)
         for (int64_t seed = 0; seed <= 0xFFFFFFFF; ++seed) {
-            // 終了フラグをチェック
             if (should_exit) {
                 continue;
             }
 
-            // 進捗表示
             if (seed % 0x4400000 == 0) {
                 #pragma omp critical
                 {
@@ -121,21 +113,16 @@ int main() {
                 }
             }
 
-            // MT_32呼び出し時にconfig.p_valueを使用
             uint32_t result = MT_32(static_cast<uint32_t>(seed), config.p_value);
             
-            // 全targetと比較
             for (const auto& target : config.targets) {
                 if (result == target) {
                     lock_guard<mutex> lock(found_mutex);
                     found_seeds.push_back(static_cast<uint32_t>(seed));
-                    // targetとseedの対応を記録
                     result_file << "target 0x" << hex << target 
                                 << " seed 0x" << seed << endl;
-                    // シード値のみをivseed.txtに出力
                     seed_file << hex << seed << endl;
 
-                    // シード数が500を超えたらフラグを設定
                     if (found_seeds.size() >= 500) {
                         cout << "\ntoo many seeds. I recommend using 5gensearch directly" << endl;
                         result_file << "too many seeds. I recommend using 5gensearch directly" << endl;
@@ -159,11 +146,9 @@ int main() {
             seed_file << "404 not found" << endl;
         }
 
-        // ファイルストリームを閉じる
         result_file.close();
         seed_file.close();
 
-        // 500個以上見つかった場合は早期リターン
         if (should_exit) {
             return 0;
         }
