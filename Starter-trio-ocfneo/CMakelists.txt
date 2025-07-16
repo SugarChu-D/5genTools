@@ -1,0 +1,31 @@
+# CMakeの最低限必要なバージョンを指定します。
+cmake_minimum_required(VERSION 3.10)
+
+# プロジェクトの名前を定義します。
+project(Starter-trio-OCFneo CXX)
+
+# C++の標準をC++23に設定します。
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# OpenMPライブラリを見つけて、プロジェクトに追加します。
+# これにより、#pragma omp のようなディレクティブが使えるようになります。
+find_package(OpenMP REQUIRED)
+
+# "Starter-trio-OCFneo" という名前の実行可能ファイルを作成します。
+add_executable(Starter-trio-OCFneo
+    starter-trio-ocfneo.cpp
+    ../lib/const.cpp
+    ../lib/sha-1.cpp
+    ../lib/GameDate.cpp
+)
+
+# libディレクトリとプロジェクトルートをインクルードパスに追加します。
+target_include_directories(Starter-trio-OCFneo PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/../lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+# 実行可能ファイルにOpenMPライブラリをリンクします。
+# これでコンパイル時にOpenMP関連のエラーが出なくなります。
+target_link_libraries(Starter-trio-OCFneo PRIVATE OpenMP::OpenMP_CXX)
