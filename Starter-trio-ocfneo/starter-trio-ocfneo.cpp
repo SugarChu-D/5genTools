@@ -7,7 +7,7 @@
 #include <atomic>
 #include <unordered_set>
 #include <omp.h>
-#include "sha-1.cpp"
+#include "sha-1.h"
 #include "const.h"
 #include "GameDate.h"
 
